@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -117,6 +118,22 @@ public class HotspotServiceImpl implements HotspotService {
                         ? "Connexion MikroTik établie avec succès"
                         : "Impossible de joindre le routeur MikroTik")
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void checkAllHotspotHealth() {
+        List<Hotspot> hotspots = hotspotRepository.findAll();
+        for (Hotspot hotspot : hotspots) {
+            try {
+                String plainPassword = mikroTikCredentialUtil.decrypt(hotspot.getMikrotikPasswordEnc());
+                boolean online = mikroTikClient.ping(hotspot, plainPassword);
+                hotspotRepository.updateOnlineStatus(hotspot.getHotspotId(), online, LocalDateTime.now());
+            } catch (Exception e) {
+                log.warn("Health check failed for hotspot {}: {}", hotspot.getHotspotId(), e.getMessage());
+                hotspotRepository.updateOnlineStatus(hotspot.getHotspotId(), false, LocalDateTime.now());
+            }
+        }
     }
 
     private Hotspot getOwnedHotspot(String userId, String hotspotId) {

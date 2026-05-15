@@ -15,4 +15,5 @@ public interface HotspotService {
     HotspotResponse update(String userId, String hotspotId, UpdateHotspotRequest request);
     void delete(String userId, String hotspotId);
     HotspotStatusResponse testConnection(String userId, String hotspotId);
+    void checkAllHotspotHealth();
 }

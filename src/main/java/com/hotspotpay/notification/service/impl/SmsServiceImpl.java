@@ -9,8 +9,13 @@ import org.springframework.stereotype.Service;
 public class SmsServiceImpl implements SmsService {
 
     @Override
-    public void send(String phone, String message) {
+    public void sendPaymentConfirmation(String phone, String reference, String amount) {
+        log.info("📱 SMS envoyé à {} : Paiement {} confirmé ({})", phone, reference, amount);
+        // TODO: Intégrer Termii, AfricasTalking ou Orange SMS API
+    }
 
-        log.info("Sending SMS to {} : {}", phone, message);
+    @Override
+    public void sendSessionExpiryWarning(String phone, String hotspotName) {
+        log.info("📱 SMS envoyé à {} : Votre session sur {} expire bientôt", phone, hotspotName);
     }
 }

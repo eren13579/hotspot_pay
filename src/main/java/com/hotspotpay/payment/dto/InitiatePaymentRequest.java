@@ -25,7 +25,7 @@ public class InitiatePaymentRequest {
     @NotBlank(message = "L'adresse MAC est obligatoire")
     @Pattern(
             regexp = "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$",
-            message = "Format MAC invalide (ex: AA:BB:CC:DD:EE:FF)"
+            message = "Format MAC invalide"
     )
     private String mac;
 

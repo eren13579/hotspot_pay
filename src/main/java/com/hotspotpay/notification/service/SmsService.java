@@ -2,5 +2,6 @@ package com.hotspotpay.notification.service;
 
 public interface SmsService {
 
-    void send(String phone, String message);
+    public void sendSessionExpiryWarning(String phone, String hotspotName);
+    public void sendPaymentConfirmation(String phone, String reference, String amount);
 }

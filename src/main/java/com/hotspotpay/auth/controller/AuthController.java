@@ -4,7 +4,7 @@ import com.hotspotpay.auth.dto.AuthResponse;
 import com.hotspotpay.auth.dto.LoginRequest;
 import com.hotspotpay.auth.dto.PasswordUpdateRequest;
 import com.hotspotpay.auth.dto.RegisterRequest;
-import hotspotpay.com.mvp.auth.dto.*;
+import com.hotspotpay.auth.dto.*;
 import com.hotspotpay.auth.service.AuthService;
 import com.hotspotpay.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,5 +1,7 @@
 package com.hotspotpay.payment.gateway;
 
+import com.hotspotpay.payment.enumeration.PaymentOperator;
+
 import java.math.BigDecimal;
 
 public interface MoMoGateway {
@@ -22,4 +24,6 @@ public interface MoMoGateway {
         SUCCESSFUL,
         FAILED
     }
+
+    PaymentOperator getOperator();
 }

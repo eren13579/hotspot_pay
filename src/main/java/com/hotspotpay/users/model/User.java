@@ -39,7 +39,11 @@ public class User {
     private String password;
     private String fullName;
     private String country;
-    private String planType;
+
+    @Column(name = "plan_type", length = 50)
+    @Builder.Default
+    private String planType = "BASIC";   // BASIC, PRO, ENTERPRISE
+
     private Boolean isActive = true;
 
     @Enumerated(EnumType.STRING)

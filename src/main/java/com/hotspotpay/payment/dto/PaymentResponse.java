@@ -3,12 +3,12 @@ package com.hotspotpay.payment.dto;
 import com.hotspotpay.payment.enumeration.PaymentOperator;
 import com.hotspotpay.payment.enumeration.PaymentStatus;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Getter
+@Data
 @Builder
 public class PaymentResponse {
     private String paymentId;
@@ -21,8 +21,7 @@ public class PaymentResponse {
     private BigDecimal amount;
     private String currency;
     private PaymentStatus status;
-    private String gatewayTxId;
-    private LocalDateTime paidAt;
+    private String description;
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
 }

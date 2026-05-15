@@ -1,5 +1,6 @@
 package com.hotspotpay.payment.gateway;
 
+import com.hotspotpay.payment.enumeration.PaymentOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,5 +87,10 @@ public class OrangeMoneyGateway implements MoMoGateway {
             log.warn("Orange Money status check failed: {}", e.getMessage());
             return TransactionStatus.PENDING;
         }
+    }
+
+    @Override
+    public PaymentOperator getOperator() {
+        return null;
     }
 }

@@ -5,7 +5,7 @@ import com.hotspotpay.hotspot.dto.CreateHotspotRequest;
 import com.hotspotpay.hotspot.dto.HotspotResponse;
 import com.hotspotpay.hotspot.dto.HotspotStatusResponse;
 import com.hotspotpay.hotspot.dto.UpdateHotspotRequest;
-import hotspotpay.com.mvp.hotspot.dto.*;
+import com.hotspotpay.hotspot.dto.*;
 import com.hotspotpay.hotspot.service.HotspotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -1,8 +1,6 @@
 package com.hotspotpay.scheduler;
 
-import com.hotspotpay.payment.gateway.MoMoGateway;
-import com.hotspotpay.payment.gateway.MtnMoMoGateway;
-import com.hotspotpay.payment.gateway.OrangeMoneyGateway;
+import com.hotspotpay.payment.gateway.*;
 import com.hotspotpay.payment.model.Payment;
 import com.hotspotpay.payment.enumeration.PaymentStatus;
 import com.hotspotpay.payment.repository.PaymentRepository;
@@ -21,12 +19,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PaymentPollingJob {
 
-    private final PaymentRepository paymentRepository;
-    private final PaymentService    paymentService;
-    private final MtnMoMoGateway    mtnGateway;
+    private final PaymentRepository  paymentRepository;
+    private final PaymentService     paymentService;
+    private final MtnMoMoGateway     mtnGateway;
     private final OrangeMoneyGateway orangeGateway;
+    private final MonerooGateway     monerooGateway;
+    private final CampayGateway      campayGateway;
 
-    // Vérifie les paiements PENDING toutes les 10 secondes
     @Scheduled(fixedDelay = 10_000)
     @Transactional
     public void pollPendingPayments() {
@@ -38,27 +37,33 @@ public class PaymentPollingJob {
         for (Payment payment : pending) {
             if (payment.getGatewayTxId() == null) continue;
             try {
+                // ✅ Tous les opérateurs ont leur gateway
                 MoMoGateway gateway = switch (payment.getOperator()) {
                     case MTN_MOMO     -> mtnGateway;
                     case ORANGE_MONEY -> orangeGateway;
+                    case MONEROO      -> monerooGateway;
+                    case CAMPAY       -> campayGateway;
                 };
 
                 MoMoGateway.TransactionStatus txStatus =
                         gateway.getTransactionStatus(payment.getGatewayTxId());
 
+                String eventId = payment.getGatewayTxId() + "_poll_" + System.currentTimeMillis();
                 switch (txStatus) {
                     case SUCCESSFUL -> paymentService.confirmFromWebhook(
-                            payment.getReference(), payment.getGatewayTxId(), true);
+                            payment.getReference(), payment.getGatewayTxId(),
+                            eventId, payment.getOperator().name(), true);
                     case FAILED     -> paymentService.confirmFromWebhook(
-                            payment.getReference(), payment.getGatewayTxId(), false);
-                    case PENDING    -> log.debug("Payment still pending: ref={}", payment.getReference());
+                            payment.getReference(), payment.getGatewayTxId(),
+                            eventId, payment.getOperator().name(), false);
+                    case PENDING    -> log.debug("Still pending: ref={}", payment.getReference());
                 }
             } catch (Exception e) {
                 log.warn("Polling error for ref={}: {}", payment.getReference(), e.getMessage());
             }
         }
 
-        // Expire les paiements PENDING dont le délai est dépassé
+        // Expire les paiements dépassés
         List<Payment> expired = paymentRepository.findExpiredPending(LocalDateTime.now());
         for (Payment p : expired) {
             paymentRepository.updateStatus(p.getReference(), PaymentStatus.EXPIRED, LocalDateTime.now());

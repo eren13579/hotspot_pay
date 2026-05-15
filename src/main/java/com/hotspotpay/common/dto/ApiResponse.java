@@ -1,23 +1,29 @@
 package com.hotspotpay.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
-    private final boolean success;
-    private final String message;
-    private final T data;
-    private final String code;
+    private boolean success;
+    private String message;
+    private T data;
+    private String code;
 
     @Builder.Default
-    private final Instant timestamp = Instant.now();
+    private Instant timestamp = Instant.now();
+
+    // ==================== MÉTHODES STATIQUES ====================
 
     public static <T> ApiResponse<T> ok(T data) {
         return ApiResponse.<T>builder()
@@ -41,8 +47,15 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static ApiResponse<Void> error(String code, String message) {
-        return ApiResponse.<Void>builder()
+    public static <T> ApiResponse<T> error(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(String code, String message) {
+        return ApiResponse.<T>builder()
                 .success(false)
                 .code(code)
                 .message(message)

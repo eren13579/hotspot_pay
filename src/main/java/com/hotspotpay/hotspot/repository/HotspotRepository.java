@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,19 +18,18 @@ public interface HotspotRepository extends JpaRepository<Hotspot, UUID> {
 
     Optional<Hotspot> findByHotspotIdAndUserId(String hotspotId, String userId);
 
-    Page<Hotspot> findAllByUserId(String userId, Pageable pageable);
-
-    boolean existsByHotspotId(String hotspotId);
-
     boolean existsByMikrotikIpAndUserId(String mikrotikIp, String userId);
 
-    List<Hotspot>findAllByIsOnlineTrue();
+    Page<Hotspot> findAllByUserId(String userId, Pageable pageable);
+
+    long countByUserId(String userId);  // Pour limiter selon planType
 
     @Modifying
-    @Query("UPDATE Hotspot h SET h.isOnline = :status, h.lastPingAt = :pingAt WHERE h.hotspotId = :hotspotId")
+    @Query("UPDATE Hotspot h SET h.isOnline = :isOnline, h.lastPingAt = :lastPingAt " +
+            "WHERE h.hotspotId = :hotspotId")
     void updateOnlineStatus(
             @Param("hotspotId") String hotspotId,
-            @Param("status") boolean status,
-            @Param("pingAt") LocalDateTime pingAt
+            @Param("isOnline") boolean isOnline,
+            @Param("lastPingAt") LocalDateTime lastPingAt
     );
 }

@@ -1,13 +1,14 @@
 package com.hotspotpay.payment.repository;
 
-import com.hotspotpay.payment.model.Payment;
 import com.hotspotpay.payment.enumeration.PaymentStatus;
+import com.hotspotpay.payment.model.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,11 +18,14 @@ import java.util.UUID;
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     Optional<Payment> findByReference(String reference);
+
     Optional<Payment> findByPaymentId(String paymentId);
+
+    List<Payment> findByStatusAndCreatedAtBefore(PaymentStatus status, LocalDateTime cutoff);
 
     Page<Payment> findAllByHotspotIdOrderByCreatedAtDesc(String hotspotId, Pageable pageable);
 
-    // Paiements PENDING pour le polling job
+    // ✅ Paiements PENDING actifs pour le polling
     @Query("""
         SELECT p FROM Payment p
         WHERE p.status = 'PENDING'
@@ -30,7 +34,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     """)
     List<Payment> findPendingNotExpired(@Param("now") LocalDateTime now);
 
-    // Paiements PENDING expirés — à marquer EXPIRED
+    // ✅ Paiements PENDING expirés
     @Query("""
         SELECT p FROM Payment p
         WHERE p.status = 'PENDING'
@@ -38,7 +42,9 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     """)
     List<Payment> findExpiredPending(@Param("now") LocalDateTime now);
 
+    // ✅ @Transactional OBLIGATOIRE sur @Modifying
     @Modifying
+    @Transactional
     @Query("""
         UPDATE Payment p SET p.status = :status,
         p.updatedAt = :now

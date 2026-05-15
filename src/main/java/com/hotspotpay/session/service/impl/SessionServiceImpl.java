@@ -5,6 +5,7 @@ import com.hotspotpay.hotspot.mikrotik.MikroTikClient;
 import com.hotspotpay.hotspot.mikrotik.utils.MikroTikCredentialUtil;
 import com.hotspotpay.hotspot.model.Hotspot;
 import com.hotspotpay.hotspot.repository.HotspotRepository;
+import com.hotspotpay.payment.model.Payment;
 import com.hotspotpay.plan.model.Plan;
 import com.hotspotpay.plan.repository.PlanRepository;
 import com.hotspotpay.session.dto.SessionResponse;
@@ -14,6 +15,7 @@ import com.hotspotpay.session.repository.SessionRepository;
 import com.hotspotpay.session.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -80,6 +84,66 @@ public class SessionServiceImpl implements SessionService {
         sessionRepository.updateStatus(sessionId, SessionStatus.REVOKED, now, now);
 
         log.info("Session revoked manually: sessionId={}, by userId={}", sessionId, userId);
+    }
+
+    @Override
+    @Transactional
+    public void expireTimedOutSessions() {
+        List<Session> expired = sessionRepository.findExpiredActive(LocalDateTime.now());
+        if (expired.isEmpty()) return;
+        log.info("Expiring {} timed-out session(s)...", expired.size());
+        for (Session session : expired) {
+            try {
+                hotspotRepository.findByHotspotId(session.getHotspotId())
+                        .ifPresent(hotspot -> {
+                            String pwd = credentialUtil.decrypt(hotspot.getMikrotikPasswordEnc());
+                            mikrotikClient.kickActiveSession(hotspot, pwd, session.getMikrotikUsername());
+                            mikrotikClient.removeHotspotUser(hotspot, pwd, session.getMikrotikUsername());
+                        });
+                LocalDateTime now = LocalDateTime.now();
+                sessionRepository.updateStatus(session.getSessionId(), SessionStatus.EXPIRED, now, now);
+                log.info("Session expired: {}", session.getSessionId());
+            } catch (Exception e) {
+                log.error("Error expiring session {}: {}", session.getSessionId(), e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void activateSession(Payment payment) {
+        Plan plan = planRepository.findByPlanId(payment.getPlanId())
+                .orElseThrow(() -> AppException.notFound("Forfait introuvable"));
+        Hotspot hotspot = hotspotRepository.findByHotspotId(payment.getHotspotId())
+                .orElseThrow(() -> AppException.notFound("Hotspot introuvable"));
+
+        String username = "hp_" + RandomStringUtils.randomAlphanumeric(8).toLowerCase();
+        String password = RandomStringUtils.randomAlphanumeric(12);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusMinutes(plan.getDurationMinutes());
+
+        Session session = Session.builder()
+                .sessionId(UUID.randomUUID().toString())
+                .paymentId(payment.getPaymentId())
+                .hotspotId(payment.getHotspotId())
+                .planId(payment.getPlanId())
+                .clientPhone(payment.getClientPhone())
+                .clientMac(payment.getClientMac())
+                .mikrotikUsername(username)
+                .mikrotikPassword(password)
+                .status(SessionStatus.ACTIVE)
+                .activatedAt(now)
+                .expiresAt(expiresAt)
+                .build();
+
+        sessionRepository.save(session);
+
+        String plainPassword = credentialUtil.decrypt(hotspot.getMikrotikPasswordEnc());
+        mikrotikClient.createHotspotUser(hotspot, plainPassword, username, password,
+                payment.getClientMac(), plan.getDurationMinutes());
+
+        log.info("Session activated: sessionId={}, mac={}, expiresAt={}",
+                session.getSessionId(), payment.getClientMac(), expiresAt);
     }
 
     // ── Privé ──────────────────────────────────────────────────────────────

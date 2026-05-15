@@ -29,7 +29,6 @@ public class Payment {
     @Column(name = "payment_id", unique = true, nullable = false)
     private String paymentId;
 
-    // Clé d'idempotence — unique par transaction
     @Column(unique = true, nullable = false)
     private String reference;
 
@@ -42,7 +41,6 @@ public class Payment {
     @Column(name = "client_phone", nullable = false, length = 20)
     private String clientPhone;
 
-    // MAC address du client — passée par MikroTik dans l'URL de redirection
     @Column(name = "client_mac", nullable = false, length = 17)
     private String clientMac;
 
@@ -62,7 +60,6 @@ public class Payment {
     @Builder.Default
     private PaymentStatus status = PaymentStatus.PENDING;
 
-    // ID retourné par l'opérateur (MTN / Orange)
     @Column(name = "gateway_tx_id")
     private String gatewayTxId;
 
@@ -79,9 +76,12 @@ public class Payment {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
-    // Quand le paiement expire si non confirmé (PENDING → EXPIRED)
-    @Column(name = "expires_at")
+    // ✅ Valeur par défaut : 30 minutes après création
+    @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    @Column(length = 255)
+    private String description;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
@@ -90,4 +90,18 @@ public class Payment {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // ✅ Génération automatique des identifiants manquants
+    @PrePersist
+    private void prePersist() {
+        if (this.paymentId == null) {
+            this.paymentId = "PAY_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+        if (this.reference == null) {
+            this.reference = "REF_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+        }
+        if (this.expiresAt == null) {
+            this.expiresAt = LocalDateTime.now().plusMinutes(30);
+        }
+    }
 }

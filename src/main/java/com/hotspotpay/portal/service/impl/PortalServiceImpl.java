@@ -17,7 +17,7 @@ import com.hotspotpay.portal.dto.PortalPageDto;
 import com.hotspotpay.portal.dto.PortalPaymentRequest;
 import com.hotspotpay.portal.dto.PortalPaymentResponse;
 import com.hotspotpay.portal.dto.PortalStatusResponse;
-import hotspotpay.com.mvp.portal.dto.*;
+import com.hotspotpay.portal.dto.*;
 import com.hotspotpay.portal.service.PortalService;
 import com.hotspotpay.session.repository.SessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -157,11 +157,12 @@ public class PortalServiceImpl implements PortalService {
 
     private String statusMessage(PaymentStatus status) {
         return switch (status) {
-            case PENDING  -> "En attente de confirmation — veuillez valider sur votre téléphone";
-            case PAID     -> "✅ Paiement confirmé ! Votre connexion WiFi est maintenant active.";
-            case FAILED   -> "❌ Paiement refusé — veuillez réessayer ou choisir un autre opérateur";
-            case EXPIRED  -> "⏱ Délai dépassé — veuillez recommencer depuis le début";
-            case REFUNDED -> "Paiement remboursé";
+            case PENDING   -> "En attente de confirmation — veuillez valider sur votre téléphone";
+            case PAID      -> "✅ Paiement confirmé ! Votre connexion WiFi est maintenant active.";
+            case FAILED    -> "❌ Paiement refusé — veuillez réessayer ou choisir un autre opérateur";
+            case EXPIRED   -> "⏱ Délai dépassé — veuillez recommencer depuis le début";
+            case REFUNDED  -> "Paiement remboursé";
+            case CANCELLED -> "Paiement annulé";
         };
     }
 

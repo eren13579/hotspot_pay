@@ -1,5 +1,6 @@
 package com.hotspotpay.payment.gateway;
 
+import com.hotspotpay.payment.enumeration.PaymentOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -99,6 +100,11 @@ public class MtnMoMoGateway implements MoMoGateway {
             log.warn("MTN MoMo status check failed for txId={}: {}", transactionId, e.getMessage());
             return TransactionStatus.PENDING;
         }
+    }
+
+    @Override
+    public PaymentOperator getOperator() {
+        return null;
     }
 
     private String basicAuth() {
