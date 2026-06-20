@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Calistoga:ital@0;1&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* ── HotspotPay Design System v2 ───────────────────────── */
+  /* Bleu = couleur primaire */
+  --color-brand-primary: #3B82F6;
+  --color-brand-primary-600: #2563EB;
+  --color-brand-primary-700: #1D4ED8;
+  --color-brand-primary-400: #60A5FA;
+  --color-brand-primary-50: #EFF6FF;
+
+  /* Fond sombre profond */
+  --color-brand-muted: #272F42;
+  --color-bg-deep: #020617;
+  --color-bg-card: #0F172A;
+  --color-bg-elevated: #1E293B;
+
+  /* Typographie */
+  --font-heading: "Calistoga", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Espacement */
+  --spacing-section: 6rem;
+  --spacing-element: 2rem;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+:root {
+  --scrollbar-track: #020617;
+  --scrollbar-thumb: #1e293b;
+}
+
+.light {
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #94a3b8;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  border: 2px solid var(--scrollbar-track);
+  transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F59E0B;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Pulse connectivité — le voyant routeur WiFi */
+@keyframes pulse-connect {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.1); }
+}
+
+@keyframes pulse-ring-1 {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes pulse-ring-2 {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+
+/* Halo lumineux d'ambiance */
+@keyframes glow-ambient {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* ── Classes utilitaires ────────────────────────────────── */
+.font-heading {
+  font-family: var(--font-heading);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+.font-montserrat {
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Pulse connectivité */
+.animate-pulse-connect {
+  animation: pulse-connect 2s ease-in-out infinite;
+}
+.animate-pulse-ring-1 {
+  animation: pulse-ring-1 2.5s ease-out infinite;
+}
+.animate-pulse-ring-2 {
+  animation: pulse-ring-2 2.5s ease-out 0.5s infinite;
+}
+.animate-glow-ambient {
+  animation: glow-ambient 4s ease-in-out infinite;
+}
