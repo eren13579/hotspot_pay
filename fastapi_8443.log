@@ -1,0 +1,277 @@
+INFO:     Will watch for changes in these directories: ['F:\\Teda patrick\\HOSPOT-FASTAPI-SERVICE']
+INFO:     Uvicorn running on http://0.0.0.0:8443 (Press CTRL+C to quit)
+INFO:     Started reloader process [20356] using WatchFiles
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "C:\Python314\Lib\multiprocessing\process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Python314\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\_subprocess.py", line 80, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 75, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+  File "C:\Python314\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 79, in serve
+    await self._serve(sockets)
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\server.py", line 86, in _serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\config.py", line 441, in load
+    self.loaded_app = import_from_string(self.app)
+                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\tedap\AppData\Roaming\Python\Python314\site-packages\uvicorn\importer.py", line 19, in import_from_string
+    module = importlib.import_module(module_str)
+  File "C:\Python314\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1398, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "F:\Teda patrick\HOSPOT-FASTAPI-SERVICE\app\main.py", line 23, in <module>
+    from app.presentation.api.routes.dashboard import router as dashboard_router
+  File "F:\Teda patrick\HOSPOT-FASTAPI-SERVICE\app\presentation\api\routes\dashboard.py", line 417
+    )
+    ^
+SyntaxError: unmatched ')'
+WARNING:  WatchFiles detected changes in 'app\presentation\api\routes\dashboard.py'. Reloading...
+ INFO:     Started server process [20376]
+INFO:     Waiting for application startup.
+2026-06-05 17:11:48,132 [INFO] app.main: Starting HotspotPay FastAPI Microservice v1.0.0
+2026-06-05 17:12:03,538 [INFO] app.config.database: Migrations appliquées avec succès
+2026-06-05 17:12:03,689 [INFO] app.infrastructure.persistence.seeders: Seeders: router_brands déjà peuplé — skip
+2026-06-05 17:12:03,703 [INFO] app.infrastructure.persistence.seeders: Seeders: subscription_plans déjà peuplé — skip
+2026-06-05 17:12:03,705 [INFO] app.main: Database initialized
+2026-06-05 17:12:03,743 [INFO] app.infrastructure.messaging.action_queue: ActionQueue: Redis connected — persistent mode
+2026-06-05 17:12:03,744 [INFO] app.main: Background cleanup task started (interval: 60s)
+INFO:     Application startup complete.
+INFO:     127.0.0.1:13988 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14042 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14051 - "GET /api/v1/dashboard/overview?user_id=test-user-id HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14089 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14111 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14117 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14120 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14118 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14117 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14118 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14117 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14127 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14126 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14127 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14126 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14131 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14130 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14144 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14143 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14152 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14151 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14156 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14155 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14161 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14162 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14165 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14164 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14169 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14168 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14177 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14176 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14186 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14186 - "GET /api/v1/subscriptions/me?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14185 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14185 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14185 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14186 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14192 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14193 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14208 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14207 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14208 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14207 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14208 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14207 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14219 - "GET /api/v1/hotspots?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14218 - "GET /api/v1/dashboard/overview?user_id=662480cf-55f4-4bc8-ac4c-11bc521db94f HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14223 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14224 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14223 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14223 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14223 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14223 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14280 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14337 - "GET /api/v1/hotspots?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779&skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14336 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14350 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14352 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14353 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14350 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14367 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14366 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14368 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14377 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14378 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14385 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14384 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14393 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14392 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14431 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14432 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14430 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14430 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14432 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14430 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14439 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14440 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14454 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14453 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14468 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14469 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14475 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14476 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14480 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14479 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14489 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14488 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14494 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14493 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14497 - "GET /api/v1/hotspots/all?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14502 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14501 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14510 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14511 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14519 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14518 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14522 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14527 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14526 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14534 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14533 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14538 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14537 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14541 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14540 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14543 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14544 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14563 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:14565 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14563 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14563 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14573 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14572 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14586 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14585 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14591 - "GET /api/v1/hotspots/all?skip=0&limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14590 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14590 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14590 - "GET /api/v1/hotspots/all?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14598 - "GET /api/v1/hotspots/all?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14597 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14628 - "GET /api/v1/hotspots/all?skip=0&limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14627 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14636 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14635 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14639 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14638 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14648 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14647 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14664 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14663 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14677 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14676 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14687 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14686 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14697 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14696 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14703 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14702 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14710 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14709 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14716 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14715 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14751 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14750 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14777 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14776 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14795 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14794 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14815 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14814 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14834 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14833 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14851 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14850 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14867 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14868 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14883 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14882 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14900 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14900 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14921 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14920 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14935 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14934 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14954 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14953 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14967 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14966 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14983 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:14982 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:15000 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:1027 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1028 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:15000 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1038 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1037 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1053 - "GET /api/v1/subscriptions/me?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:1055 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1056 - "GET /api/v1/hotspots/all?skip=0&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1053 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1074 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1073 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1085 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1084 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1089 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1088 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1095 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1094 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1125 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1124 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1134 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1133 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1149 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1148 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1164 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1163 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1182 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1181 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1190 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1189 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1196 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1195 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+2026-06-05 18:00:09,672 [WARNING] app.presentation.api.middlewares.api_key_auth: Invalid or missing API key for path /api/v1/hotspots/all
+INFO:     127.0.0.1:1203 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:1207 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1206 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1214 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1221 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1220 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1226 - "GET /api/v1/hotspots/all?skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1225 - "GET /api/v1/dashboard/admin/overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1230 - "GET /api/v1/hotspots?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779&skip=0&limit=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1229 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1238 - "GET /api/v1/dashboard/overview?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:1238 - "GET /api/v1/hotspots?user_id=1d4edebd-5f23-43bd-b63d-26ec54253779&skip=0&limit=7 HTTP/1.1" 200 OK

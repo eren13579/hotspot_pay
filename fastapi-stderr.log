@@ -1,0 +1,34 @@
+INFO:     Started server process [18088]
+INFO:     Waiting for application startup.
+2026-05-31 21:54:55,688 [INFO] app.main: Starting HotspotPay FastAPI Microservice v1.0.0
+2026-05-31 21:54:56,168 [INFO] app.infrastructure.persistence.seeders: Seeders: router_brands déjà peuplé — skip
+2026-05-31 21:54:56,185 [INFO] app.main: Database initialized
+2026-05-31 21:54:56,211 [WARNING] app.infrastructure.messaging.action_queue: ActionQueue: Redis unavailable (unknown command 'HELLO') — in-memory fallback
+2026-05-31 21:54:56,261 [INFO] app.main: Background cleanup task started (interval: 60s)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8444 (Press CTRL+C to quit)
+2026-05-31 21:54:59,843 [INFO] app.application.services.hotspot_service: Hotspot créé hotspot_id=44c74f8d-4425-4bc0-8897-eae2031604e2 user=demo-user
+2026-05-31 21:55:15,978 [INFO] app.presentation.api.routes.plans: Plan created plan_id=15321557-cfe9-44ce-bfe8-854d87bfe770 hotspot=44c74f8d-4425-4bc0-8897-eae2031604e2
+2026-05-31 21:56:17,407 [WARNING] app.presentation.api.middlewares.api_key_auth: Invalid or missing API key for path /api/v1/payments/validate-hotspot-plan/44c74f8d-4425-4bc0-8897-eae2031604e2/15321557-cfe9-44ce-bfe8-854d87bfe770
+2026-05-31 22:17:58,830 [INFO] app.application.services.hotspot_service: Token généré hotspot_id=44c74f8d-4425-4bc0-8897-eae2031604e2
+2026-05-31 22:23:56,611 [INFO] app.application.services.hotspot_service: Hotspot créé hotspot_id=d221371c-8dbe-490b-8c88-a6a9b594b402 user=1d4edebd-5f23-43bd-b63d-26ec54253779
+2026-05-31 22:24:24,363 [INFO] app.presentation.api.routes.plans: Plan created plan_id=b44ead08-8971-4dde-89e9-4d245669001d hotspot=d221371c-8dbe-490b-8c88-a6a9b594b402
+2026-05-31 22:24:25,056 [INFO] app.application.services.hotspot_service: Token généré hotspot_id=d221371c-8dbe-490b-8c88-a6a9b594b402
+2026-05-31 22:28:48,818 [INFO] app.application.services.hotspot_service: Token généré hotspot_id=d221371c-8dbe-490b-8c88-a6a9b594b402
+2026-05-31 22:33:01,415 [INFO] app.application.services.hotspot_service: Token généré hotspot_id=d221371c-8dbe-490b-8c88-a6a9b594b402
+2026-05-31 22:33:16,915 [INFO] app.application.services.hotspot_service: Token généré hotspot_id=d221371c-8dbe-490b-8c88-a6a9b594b402
+2026-05-31 22:59:59,713 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:01:01,774 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:02:04,071 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:03:06,147 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:04:08,181 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:05:10,509 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:06:12,576 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:07:15,190 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:08:17,245 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:09:19,308 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:10:21,352 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:11:23,408 [ERROR] app.main: Cleanup expired actions error: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-31 23:12:23,585 [ERROR] app.main: Cleanup expired actions error: connection was closed in the middle of operation
+2026-05-31 23:13:23,830 [ERROR] app.main: Cleanup expired actions error: connection was closed in the middle of operation
+2026-05-31 23:14:24,589 [ERROR] app.main: Cleanup expired actions error: connection was closed in the middle of operation

@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════
+# HOTSPOTPAY — AGENT MIKROTIK (AUTO-GENERE)
+# ═══════════════════════════════════════════════════════
+# Hotspot ......... __HOTSPOT_ID__
+# Genere le ....... __GENERATED_AT__
+# ═══════════════════════════════════════════════════════
+# INSTALLATION :
+#   1. Installer sshpass : apt install sshpass (ou brew install hudochenkov/sshpass/sshpass)
+#   2. Configurer les variables ROUTEUR ci-dessous
+#   3. chmod +x hotspotpay-mikrotik-agent.sh
+#   4. ./hotspotpay-mikrotik-agent.sh &
+#   5. Ou ajouter dans crontab : */1 * * * * /chemin/vers/hotspotpay-mikrotik-agent.sh
+# ═══════════════════════════════════════════════════════
+
+# ── CONFIGURATION AUTO-GENEREE (ne pas modifier) ──
+HOTSPOT_ID="__HOTSPOT_ID__"
+ROUTER_TOKEN="__ROUTER_TOKEN__"
+POLLING_URL="__POLLING_URL__"
+ACK_BASE_URL="__ACK_BASE_URL__"
+POLL_INTERVAL=15
+
+# ── CONFIGURATION ROUTEUR (a personnaliser) ──
+ROUTEUR_IP="192.168.88.1"       # IP de votre routeur MikroTik
+ROUTEUR_USER="admin"            # Utilisateur SSH du routeur
+ROUTEUR_PASS=""                 # Mot de passe SSH (laisser vide pour cle SSH)
+ROUTEUR_PORT=22                 # Port SSH
+
+# ── FONCTIONS ──
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [HotspotPay] $1"; }
+
+executer_ssh() {
+    local cmd="$1"
+    if [ -n "$ROUTEUR_PASS" ]; then        sshpass -p "$ROUTEUR_PASS" ssh -o StrictHostKeyChecking=no -p "$ROUTEUR_PORT" "${ROUTEUR_USER}@${ROUTEUR_IP}" "$cmd"
+    else        ssh -o StrictHostKeyChecking=no -p "$ROUTEUR_PORT" "${ROUTEUR_USER}@${ROUTEUR_IP}" "$cmd"
+    fi
+}
+
+creer_utilisateur() {
+    local user="$1" pass="$2" profile="${3:-default}"
+    executer_ssh "/ip hotspot user add name=\"$user\" password=\"$pass\" profile=\"$profile\""    log "CREE: $user (profile=$profile)"
+}
+
+supprimer_utilisateur() {    local user="$1"
+    executer_ssh "/ip hotspot user remove [find name=\"$user\"]"    log "SUPPRIME: $user"
+}
+
+kick_session() {
+    local mac="$1"
+    executer_ssh "/ip hotspot active remove [find mac-address=\"$mac\"]"    log "KICK: $mac"
+}
+
+envoyer_ack() {
+    local action_id="$1"
+    local ack_url="${ACK_BASE_URL}/${action_id}/done"    curl -sk -X POST "$ack_url" \
+        -H "Content-Type: application/json" \
+        -H "X-Router-Token: $ROUTER_TOKEN" \
+        -d '{"success":true}' > /dev/null 2>&1
+    log "ACK: action #$action_id"
+}
+
+# ═══════════════════════════════════════════════════════
+# BOUCLE PRINCIPALE
+# ═══════════════════════════════════════════════════════log "═══ Agent HotspotPay demarre (hotspot=$HOTSPOT_ID) ═══"
+log "═══ Polling toutes les ${POLL_INTERVAL}s ═══"
+
+while true; do    local actions
+    actions=$(curl -sk -H "X-Router-Token: $ROUTER_TOKEN" "$POLLING_URL" 2>/dev/null)    if [ -z "$actions" ]; then
+        log "Polling: vide (timeout ou erreur)"
+    else        local count
+        count=$(echo "$actions" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo "0")        if [ "$count" -gt 0 ] 2>/dev/null; then
+            log "Polling: $count action(s) a executer"
+
+            # Parser chaque action
+            echo "$actions" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for a in data.get('actions', []):
+    t = a.get('type', '')    u = a.get('username', '')    p = a.get('password', '')
+    pr = a.get('profile', 'default')
+    m = a.get('macAddress', '')    aid = a.get('actionId', '')
+    if t == 'CREATE_USER' and u:
+        print(f'CREATE|{u}|{p}|{pr}')
+    elif t == 'REMOVE_USER' and u:
+        print(f'REMOVE|{u}')
+    elif t == 'KICK_SESSION' and m:
+        print(f'KICK|{m}')
+    print(f'ACK|{aid}')
+" 2>/dev/null | while IFS='|' read -r action arg1 arg2 arg3; do                case "$action" in
+                    CREATE)
+                        creer_utilisateur "$arg1" "$arg2" "$arg3"                        ;;
+                    REMOVE)                        supprimer_utilisateur "$arg1"
+                        ;;
+                    KICK)
+                        kick_session "$arg1"                        ;;
+                    ACK)
+                        envoyer_ack "$arg1"                        ;;
+                esac
+            done
+        else
+            log "Polling: aucune action en attente"
+        fi
+    fi
+
+    sleep "$POLL_INTERVAL"
+done
