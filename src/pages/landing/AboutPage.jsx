@@ -62,7 +62,7 @@ function PhotoCarousel({ photos }) {
   return (
     <div className="relative w-full">
       {/* Carousel viewport */}
-      <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/30 aspect-16/9">
+      <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-900/30 aspect-video">
         <AnimatePresence mode="wait">
           <motion.img
             key={current}
@@ -321,8 +321,8 @@ function AboutContent() {
       <main className="flex-1 bg-slate-950">
         <section className="py-24 md:py-32 relative overflow-hidden">
           {/* Halos d'ambiance */}
-          <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-orange-600/4 rounded-full blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-1/4 -right-32 w-[400px] h-[400px] bg-blue-600/4 rounded-full blur-[150px] pointer-events-none" />
+          <div className="absolute top-1/4 -left-32 w-125 h-125 bg-orange-600/4 rounded-full blur-[150px] pointer-events-none" />
+          <div className="absolute bottom-1/4 -right-32 w-100 h-100 bg-blue-600/4 rounded-full blur-[150px] pointer-events-none" />
 
           <div className="w-full px-4 md:px-8 lg:px-16 2xl:px-24 relative z-10">
             {/* ── 1. Hero ── */}
