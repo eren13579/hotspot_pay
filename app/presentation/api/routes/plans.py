@@ -225,6 +225,7 @@ async def update_plan(
     return {"success": True, "data": _plan_to_response(updated)}
 
 
+@router.post("/{plan_id}/toggle")
 @router.patch("/{plan_id}/toggle")
 async def toggle_plan_active(
     hotspot_id: str,
