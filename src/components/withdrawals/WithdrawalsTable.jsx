@@ -47,6 +47,7 @@ export default function WithdrawalsTable({
         <thead>
           <tr className={cn('border-b', isLight ? 'border-slate-200' : 'border-slate-800')}>
             <th className={cn('text-left px-5 py-3.5 font-semibold', textMuted)}>Référence</th>
+            {isAdmin && <th className={cn('text-left px-5 py-3.5 font-semibold', textMuted)}>Utilisateur</th>}
             <th className={cn('text-right px-5 py-3.5 font-semibold', textMuted)}>Montant</th>
             <th className={cn('text-center px-5 py-3.5 font-semibold', textMuted)}>Statut</th>
             <th className={cn('text-right px-5 py-3.5 font-semibold hidden sm:table-cell', textMuted)}>Date</th>
@@ -64,6 +65,13 @@ export default function WithdrawalsTable({
                     {wid?.slice(0, 8) || '—'}
                   </span>
                 </td>
+                {isAdmin && (
+                  <td className="px-5 py-3">
+                    <span className={cn('font-mono text-[10px]', textSecondary)}>
+                      {w.userId ? w.userId.slice(0, 8) + '…' : '—'}
+                    </span>
+                  </td>
+                )}
                 <td className="px-5 py-3 text-right">
                   <span className={cn('font-bold', textPrimary)}>{formatXAF(w.amount || 0)}</span>
                 </td>

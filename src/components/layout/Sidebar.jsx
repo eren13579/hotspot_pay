@@ -8,7 +8,9 @@ import {
   Repeat, Settings, LogOut, ChevronLeft, Shield,
   Store, PlusCircle, Wallet, Receipt, Download,
   Router, UserCheck, ChevronDown, Tag,
+  ArrowUpCircle, Activity, LifeBuoy,
 } from 'lucide-react'
+import useAdminNotifications from '../../hooks/useAdminNotifications'
 
 // ─── Groupes de navigation ───────────────────────────────────────────
 const adminNav = [
@@ -59,9 +61,13 @@ const adminNav = [
     items: [
       { to: '/dashboard/admin/users', icon: Users, label: 'Utilisateurs' },
       { to: '/dashboard/admin/router-brands', icon: Router, label: 'Marques routeurs' },
+      { to: '/dashboard/admin/monitoring', icon: Activity, label: 'Monitoring' },
+      { to: '/dashboard/admin/payments', icon: Wallet, label: 'Paiements' },
+      { to: '/dashboard/admin/withdrawals', icon: Download, label: 'Retraits' },
       { to: '/dashboard/admin/settings', icon: Settings, label: 'Paramètres' },
     ],
   },
+  { type: 'link', to: '/dashboard/support', icon: LifeBuoy, label: 'Aide & Support' },
 ]
 
 const userNav = [
@@ -101,12 +107,23 @@ const userNav = [
     ],
   },
   { type: 'link', to: '/dashboard/subscriptions', icon: Repeat, label: 'Mon Abonnement' },
+  { type: 'link', to: '/dashboard/support', icon: LifeBuoy, label: 'Aide & Support' },
 ]
 
 // ─── Sous-composant : groupe déroulant ───────────────────────────────
-function NavGroup({ group, collapsed, isActiveGroup, onToggle }) {
+function NotificationBadge({ count }) {
+  if (!count || count <= 0) return null
+  return (
+    <span className="ml-auto bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
+function NavGroup({ group, collapsed, isActiveGroup, onToggle, badges }) {
   const location = useLocation()
   const isActive = isActiveGroup
+  const groupHasBadge = group.items?.some(i => (badges?.[i.to] || 0) > 0)
 
   return (
     <div>
@@ -124,6 +141,7 @@ function NavGroup({ group, collapsed, isActiveGroup, onToggle }) {
         {!collapsed && (
           <>
             <span className="flex-1 text-left">{group.label}</span>
+            {groupHasBadge && <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse mr-1" />}
             <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', isActive && 'rotate-180')} />
           </>
         )}
@@ -131,24 +149,28 @@ function NavGroup({ group, collapsed, isActiveGroup, onToggle }) {
 
       {!collapsed && isActive && (
         <div className="ml-3 mt-1 space-y-0.5 border-l border-slate-800 pl-2">
-          {group.items.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end
-              className={({ isActive: isItemActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-blue-500/50',
-                  isItemActive
-                    ? 'bg-blue-600/10 text-blue-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/30',
-                )
-              }
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {group.items.map((item) => {
+            const badge = badges?.[item.to]
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end
+                className={({ isActive: isItemActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                    isItemActive
+                      ? 'bg-blue-600/10 text-blue-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/30',
+                  )
+                }
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+                {badge ? <NotificationBadge count={badge} /> : null}
+              </NavLink>
+            )
+          })}
         </div>
       )}
     </div>
@@ -157,10 +179,16 @@ function NavGroup({ group, collapsed, isActiveGroup, onToggle }) {
 
 // ─── Composant principal ─────────────────────────────────────────────
 export default function Sidebar({ collapsed, onToggle, onLogout }) {
-  const role = useSelector((state) => state.auth.role)
+  const { role, user } = useSelector((state) => state.auth)
   const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
   const navItems = isAdmin ? adminNav : userNav
+  const planType = user?.planType?.toUpperCase?.() || 'STANDARD'
+  const canUpgrade = !isAdmin && (planType === 'STANDARD' || planType === 'PRO')
   const location = useLocation()
+  const { pendingWithdrawals } = useAdminNotifications()
+  const badges = isAdmin
+    ? { '/dashboard/admin/withdrawals': pendingWithdrawals }
+    : {}
 
   // Détermine quel groupe est ouvert selon la route actuelle
   const [openGroup, setOpenGroup] = useState(() => {
@@ -255,12 +283,34 @@ export default function Sidebar({ collapsed, onToggle, onLogout }) {
                   collapsed={collapsed}
                   isActiveGroup={isActiveGroup}
                   onToggle={() => toggleGroup(item.label)}
+                  badges={badges}
                 />
               )
             }
             return null
           })}
         </nav>
+
+        {/* Mettre à niveau — visible pour STANDARD et PRO */}
+        {canUpgrade && (
+          <div className="p-2 border-t border-slate-800">
+            <NavLink
+              to="/dashboard/subscriptions"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-emerald-600/10 text-emerald-400 border border-emerald-500/20'
+                    : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-transparent',
+                  collapsed && 'justify-center',
+                )
+              }
+            >
+              <ArrowUpCircle className="w-5 h-5 shrink-0" />
+              {!collapsed && <span>Mettre à niveau</span>}
+            </NavLink>
+          </div>
+        )}
 
         {/* Déconnexion */}
         <div className="p-2 border-t border-slate-800">

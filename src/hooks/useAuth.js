@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { loginUser, registerUser, logoutUser, fetchMe, clearError, googleLogin } from '../store/authSlice'
+import { hotspotsApi } from '../api/endpoints'
 
 export function useAuth() {
   const dispatch = useDispatch()
@@ -14,7 +15,21 @@ export function useAuth() {
     const result = await dispatch(loginUser({ email, password }))
     if (loginUser.fulfilled.match(result)) {
       toast.success(result.payload.message || 'Connexion réussie')
-      navigate('/dashboard')
+
+      // Vérifier si l'utilisateur a au moins 1 hotspot
+      // Si oui -> dashboard, sinon -> onboarding
+      const userId = result.payload.data?.userId
+      try {
+        const { data } = await hotspotsApi.list(userId, 0, 1, 'self')
+        const items = data?.data?.content || []
+        if (items.length > 0) {
+          navigate('/dashboard')
+        } else {
+          navigate('/onboarding')
+        }
+      } catch {
+        navigate('/dashboard')
+      }
     }
     return result
   }
@@ -49,7 +64,16 @@ export function useAuth() {
     const result = await dispatch(googleLogin(idToken))
     if (googleLogin.fulfilled.match(result)) {
       toast.success(result.payload.message || 'Connexion réussie')
-      navigate('/dashboard')
+
+      // Vérifier si l'utilisateur a au moins 1 hotspot
+      const userId = result.payload.data?.userId
+      try {
+        const { data } = await hotspotsApi.list(userId, 0, 1, 'self')
+        const items = data?.data?.content || []
+        navigate(items.length > 0 ? '/dashboard' : '/onboarding')
+      } catch {
+        navigate('/dashboard')
+      }
     }
     return result
   }

@@ -253,8 +253,12 @@ export const withdrawalsApi = {
   create: (data) =>
     api.post('/withdrawals', data),
 
-  list: (page = 0, size = 20) =>
-    api.get(`/withdrawals?page=${page}&size=${size}`),
+  list: (page = 0, size = 20, scope) => {
+    const url = scope === 'global'
+      ? `/withdrawals/admin?page=${page}&size=${size}`
+      : `/withdrawals?page=${page}&size=${size}`
+    return api.get(url)
+  },
 
   get: (id) =>
     api.get(`/withdrawals/${id}`),
@@ -267,6 +271,13 @@ export const withdrawalsApi = {
 
   reject: (id, reason) =>
     api.post(`/withdrawals/${id}/reject`, { reason }),
+
+  // Batch
+  batchApprove: (withdrawalIds) =>
+    api.post('/withdrawals/batch/approve', { withdrawalIds }),
+
+  batchReject: (withdrawalIds, reason) =>
+    api.post('/withdrawals/batch/reject', { withdrawalIds, reason }),
 }
 
 /* ============================================
@@ -291,6 +302,17 @@ export const adminSettingsApi = {
 /* ============================================
    ADMIN — MARQUES DE ROUTEURS
    ============================================ */
+/* ============================================
+   ADMIN — MONITORING (FastAPI)
+   ============================================ */
+export const monitoringApi = {
+  routerActions: (limit = 50) =>
+    api.get(`/admin/monitoring/router-actions?limit=${limit}`),
+
+  notificationCounts: () =>
+    api.get('/admin/monitoring/notifications'),
+}
+
 export const routerBrandAdminApi = {
   list: (onlyActive = false) =>
     api.get(`/admin/router-brands?onlyActive=${onlyActive}`),

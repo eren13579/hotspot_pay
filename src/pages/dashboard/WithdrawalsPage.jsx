@@ -101,7 +101,7 @@ export default function WithdrawalsPage() {
       else setRefreshing(true)
       setError(null)
 
-      const res = await withdrawalsApi.list(page, pageSize)
+      const res = await withdrawalsApi.list(page, pageSize, scope)
 
       const data = res?.data?.data?.content || res?.data?.data || res?.data || []
       setWithdrawals(Array.isArray(data) ? data : [])
@@ -112,11 +112,11 @@ export default function WithdrawalsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [loading, page])
+  }, [loading, page, scope])
 
   useEffect(() => { fetchWithdrawals() }, [fetchWithdrawals])
 
-  useEffect(() => { setPage(0) }, [statusFilter, periodFilter])
+  useEffect(() => { setPage(0) }, [statusFilter, periodFilter, scope])
 
   // ── Combined filter ───────────────────────────────────────────────────
   const filtered = useMemo(() => {

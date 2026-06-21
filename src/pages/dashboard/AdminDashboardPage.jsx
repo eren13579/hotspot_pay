@@ -3,16 +3,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import {
   LayoutDashboard, Users, Ticket, DollarSign, Calendar, Activity,
-  Globe, Zap, Crown, ArrowUpRight, ArrowDownRight,
+  Globe, Zap, Crown, ArrowUpRight, ArrowDownRight, Download, Wallet,
+  CheckCircle, XCircle, Clock, TrendingUp,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { dashboardApi } from '../../api/endpoints'
+import { dashboardApi, withdrawalsApi, adminUsersApi } from '../../api/endpoints'
 import { cn } from '../../utils/cn'
 import { formatDateTime, formatXAF } from '../../utils/format'
 import  { LoadingSkeleton, ErrorState } from '../../components/ui/EmptyState'
 
 /* ─── KPI Card ──────────────────────────────────────────── */
-function KpiCard({ label, value, icon: Icon, trend, color, isLight }) {
+function KpiCard({ label, value, icon: Icon, trend, color, isLight, subtitle }) {
   const colorMap = {
     amber: isLight
       ? 'bg-amber-50 text-amber-600 border-amber-200'
@@ -61,6 +62,7 @@ function KpiCard({ label, value, icon: Icon, trend, color, isLight }) {
       <p className={cn('text-xs mt-1', isLight ? 'text-slate-500' : 'text-slate-400')}>
         {label}
       </p>
+      {subtitle && <p className={cn('text-[10px] mt-0.5', isLight ? 'text-slate-400' : 'text-slate-500')}>{subtitle}</p>}
     </motion.div>
   )
 }
@@ -118,6 +120,10 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [period, setPeriod] = useState('30d') // 7d, 30d, 90d
+  const [withdrawalData, setWithdrawalData] = useState(null)
+  const [withdrawalLoading, setWithdrawalLoading] = useState(true)
+  const [planDistribution, setPlanDistribution] = useState(null)
+  const [planLoading, setPlanLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     try {
@@ -139,7 +145,43 @@ export default function AdminDashboardPage() {
     }
   }, [period])
 
+  const fetchWithdrawals = useCallback(async () => {
+    try {
+      const res = await withdrawalsApi.list(0, 1000, 'global')
+      const items = res?.data?.data?.content || res?.data?.data || []
+      const list = Array.isArray(items) ? items : []
+      const pending = list.filter(w => w.status === 'PENDING').length
+      const completed = list.filter(w => w.status === 'COMPLETED').length
+      const rejected = list.filter(w => w.status === 'REJECTED').length
+      const totalVolume = list.filter(w => w.status === 'COMPLETED')
+        .reduce((sum, w) => sum + (parseFloat(w.amount) || 0), 0)
+      const approvalRate = (pending + completed + rejected) > 0
+        ? Math.round((completed / (completed + rejected)) * 100)
+        : 0
+      setWithdrawalData({ pending, completed, rejected, totalVolume, approvalRate, total: list.length })
+    } catch { /* withdrawal stats non disponibles */ }
+    finally { setWithdrawalLoading(false) }
+  }, [])
+
   useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { fetchWithdrawals() }, [fetchWithdrawals])
+
+  const fetchPlanDistribution = useCallback(async () => {
+    setPlanLoading(true)
+    try {
+      const res = await adminUsersApi.list(0, 10000, {})
+      const users = res?.data?.data?.content || res?.data?.data || []
+      const list = Array.isArray(users) ? users : []
+      const standard = list.filter(u => (u.planType || 'STANDARD').toUpperCase() === 'STANDARD').length
+      const pro = list.filter(u => (u.planType || '').toUpperCase() === 'PRO').length
+      const premium = list.filter(u => (u.planType || '').toUpperCase() === 'PREMIUM').length
+      const total = standard + pro + premium || 1
+      setPlanDistribution({ standard, pro, premium, total })
+    } catch { /* silencieux */ }
+    finally { setPlanLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchPlanDistribution() }, [fetchPlanDistribution])
 
   if (loading && !data) {
     return (
@@ -273,7 +315,56 @@ export default function AdminDashboardPage() {
             />
           </div>
 
-          {/* Row 3 : Graphiques + Top hotspots */}
+          {/* Row 3 : Retraits + Répartition plans */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <KpiCard
+              label="Retraits en attente"
+              value={withdrawalLoading ? '…' : (withdrawalData?.pending ?? 0)}
+              icon={Clock}
+              color={withdrawalData?.pending > 0 ? 'amber' : 'emerald'}
+              isLight={isLight}
+            />
+            <KpiCard
+              label="Volume total retiré"
+              value={withdrawalLoading ? '…' : formatXAF(withdrawalData?.totalVolume ?? 0)}
+              icon={Wallet}
+              color="blue"
+              isLight={isLight}
+            />
+            <KpiCard
+              label="Taux d'approbation"
+              value={withdrawalLoading ? '…' : `${withdrawalData?.approvalRate ?? 0}%`}
+              icon={TrendingUp}
+              color={withdrawalData?.approvalRate >= 70 ? 'emerald' : 'amber'}
+              isLight={isLight}
+            />
+            <KpiCard
+              label="Abonnés Standard"
+              value={planLoading ? '…' : (planDistribution?.standard ?? 0)}
+              icon={Users}
+              color={planDistribution?.pro > 0 ? 'amber' : 'blue'}
+              isLight={isLight}
+              subtitle={planDistribution ? `${((planDistribution.standard / planDistribution.total) * 100).toFixed(0)}%` : ''}
+            />
+            <KpiCard
+              label="Abonnés PRO"
+              value={planLoading ? '…' : (planDistribution?.pro ?? 0)}
+              icon={Users}
+              color="emerald"
+              isLight={isLight}
+              subtitle={planDistribution ? `${((planDistribution.pro / planDistribution.total) * 100).toFixed(0)}%` : ''}
+            />
+            <KpiCard
+              label="Abonnés PREMIUM"
+              value={planLoading ? '…' : (planDistribution?.premium ?? 0)}
+              icon={Crown}
+              color="amber"
+              isLight={isLight}
+              subtitle={planDistribution ? `${((planDistribution.premium / planDistribution.total) * 100).toFixed(0)}%` : ''}
+            />
+          </div>
+
+          {/* Row 4 : Graphiques + Top hotspots */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Revenus par jour */}
             <motion.div
@@ -324,7 +415,7 @@ export default function AdminDashboardPage() {
             </motion.div>
           </div>
 
-          {/* Row 4 : Top hotspots + Détails tickets */}
+          {/* Row 5 : Top hotspots + Détails tickets */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Top hotspots */}
             <motion.div
@@ -413,6 +504,7 @@ export default function AdminDashboardPage() {
                   { label: 'Total hotspots', value: data.totalHotspots ?? 0 },
                   { label: 'Hotspots en ligne', value: data.onlineHotspots ?? 0, sub: `${data.totalHotspots > 0 ? Math.round((data.onlineHotspots / data.totalHotspots) * 100) : 0}%` },
                   { label: 'Sessions actives', value: data.activeSessions ?? 0 },
+                  { label: 'Retraits en attente', value: withdrawalLoading ? '…' : (withdrawalData?.pending ?? 0) },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between py-1">
                     <span className={cn('text-xs', textSecondary)}>{item.label}</span>

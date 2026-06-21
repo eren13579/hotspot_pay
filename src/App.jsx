@@ -26,6 +26,10 @@ import AdminDashboardPage from './pages/dashboard/AdminDashboardPage'
 import SettingsPage from './pages/dashboard/SettingsPage'
 import ProfilePage from './pages/dashboard/ProfilePage'
 import AdminSettingsPage from './pages/dashboard/AdminSettingsPage'
+import AdminMonitoringPage from './pages/dashboard/AdminMonitoringPage'
+import AdminWithdrawalsPage from './pages/dashboard/AdminWithdrawalsPage'
+import AdminPaymentsPage from './pages/dashboard/AdminPaymentsPage'
+import SupportPage from './pages/dashboard/SupportPage'
 import PortalPage from './pages/portal/PortalPage'
 
 function App() {
@@ -85,8 +89,12 @@ function App() {
             <Route path="admin" element={<AdminDashboardPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
             <Route path="admin/router-brands" element={<AdminRouterBrandsPage />} />
+            <Route path="admin/monitoring" element={<AdminMonitoringPage />} />
+            <Route path="admin/withdrawals" element={<AdminWithdrawalsPage />} />
+            <Route path="admin/payments" element={<AdminPaymentsPage />} />
             <Route path="admin/settings" element={<AdminSettingsPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="support" element={<SupportPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
