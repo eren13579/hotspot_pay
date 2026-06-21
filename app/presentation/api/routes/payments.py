@@ -279,3 +279,27 @@ async def get_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     return {"success": True, "data": _payment_to_response(payment)}
+
+
+@router.post("/{payment_id}/refund")
+async def refund_payment(
+    payment_id: str,
+    payment_service: PaymentService = Depends(get_payment_service),
+):
+    """Rembourser un paiement (admin uniquement — appelé par Java)."""
+    payment = await payment_service.get_by_payment_id(payment_id)
+    if not payment:
+        raise HTTPException(status_code=404, detail="Paiement introuvable")
+
+    if payment.status != PaymentStatus.SUCCESS:
+        raise HTTPException(
+            status_code=400,
+            detail="Seuls les paiements SUCCESS peuvent être remboursés",
+        )
+
+    payment.status = PaymentStatus.REFUNDED
+    payment.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    await payment_service._repo.update(payment)
+
+    logger.info("Payment refunded payment_id=%s ref=%s", payment_id, payment.reference)
+    return {"success": True, "data": _payment_to_response(payment)}

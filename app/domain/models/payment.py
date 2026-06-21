@@ -15,6 +15,7 @@ class PaymentStatus(str, Enum):
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
     EXPIRED = "EXPIRED"
+    REFUNDED = "REFUNDED"
 
 
 @dataclass

@@ -22,6 +22,7 @@ from app.presentation.api.routes.sessions import router as sessions_router
 from app.presentation.api.routes.payments import router as payments_router
 from app.presentation.api.routes.dashboard import router as dashboard_router
 from app.presentation.api.routes.subscriptions import router as subscriptions_router, admin_router as admin_subscriptions_router
+from app.presentation.api.routes.admin_monitoring import router as admin_monitoring_router
 
 settings = get_settings()
 
@@ -105,6 +106,7 @@ app.include_router(payments_router)
 app.include_router(dashboard_router)
 app.include_router(subscriptions_router)
 app.include_router(admin_subscriptions_router)
+app.include_router(admin_monitoring_router)
 
 if __name__ == "__main__":
     import uvicorn
