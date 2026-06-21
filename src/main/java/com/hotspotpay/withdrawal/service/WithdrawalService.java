@@ -10,4 +10,17 @@ public interface WithdrawalService {
     Page<WithdrawalResponse> findAll(String userId, Pageable pageable);
     WithdrawalResponse findById(String userId, String withdrawalId);
     void cancel(String userId, String withdrawalId);
+
+    // ── Admin ──
+    Page<WithdrawalResponse> findAllAdmin(Pageable pageable);
+    WithdrawalResponse approve(String withdrawalId);
+    WithdrawalResponse reject(String withdrawalId, String reason);
+
+    /** Batch approve/reject */
+    List<WithdrawalResponse> batchApprove(List<String> withdrawalIds);
+    List<WithdrawalResponse> batchReject(List<String> withdrawalIds, String reason);
+
+    /** Notification counts */
+    long countPendingWithdrawals();
+    long countWithdrawalsToday();
 }

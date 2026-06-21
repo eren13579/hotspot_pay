@@ -96,4 +96,16 @@ public class PaymentController {
             HttpServletRequest request) {
         return forwardWebhook("moneroo", payload, request);
     }
+
+    @PostMapping("/payments/{paymentId}/refund")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @Operation(summary = "Rembourser un paiement (admin)")
+    public ResponseEntity<ApiResponse<JsonNode>> refund(
+            @PathVariable String paymentId) {
+        JsonNode result = fastApiPaymentClient.refundPayment(paymentId);
+        if (result == null) {
+            throw AppException.internalError("Erreur lors du remboursement (FastAPI)");
+        }
+        return ResponseEntity.ok(ApiResponse.okFromFastApi(result));
+    }
 }

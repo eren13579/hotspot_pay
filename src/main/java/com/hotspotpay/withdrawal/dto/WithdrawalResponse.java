@@ -16,6 +16,8 @@ public class WithdrawalResponse {
     private String           operator;
     private WithdrawalStatus status;
     private String           gatewayRef;
+    private String           userId;
+    private String           failureReason;
     private LocalDateTime    processedAt;
     private LocalDateTime    createdAt;
     private String           message;

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Authentification", description = "Inscription, connexion, tokens")
 public class AuthController {
 
@@ -31,9 +33,23 @@ public class AuthController {
     @Operation(summary = "Inscription d'un nouveau propriétaire")
     public ResponseEntity<ApiResponse<AuthResponse>> register(
             @Valid @RequestBody RegisterRequest request) {
+        AuthResponse response = authService.register(request);
+
+        // Créer un abonnement STANDARD gratuit pour le nouvel utilisateur
+        try {
+            var subscription = subscriptionClient.create(
+                    response.getUserId(), "standard", 0, "XAF");
+            if (subscription != null) {
+                log.info("Abonnement STANDARD créé pour userId={}", response.getUserId());
+            }
+        } catch (Exception e) {
+            log.warn("Impossible de créer l'abonnement STANDARD pour userId={}: {}",
+                    response.getUserId(), e.getMessage());
+        }
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.ok("Inscription réussie", authService.register(request)));
+                .body(ApiResponse.ok("Inscription réussie", response));
     }
 
     @PostMapping("/login")

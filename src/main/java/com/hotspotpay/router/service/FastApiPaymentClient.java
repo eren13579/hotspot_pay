@@ -129,4 +129,20 @@ public class FastApiPaymentClient {
             return null;
         }
     }
+
+    /**
+     * Rembourse un paiement — délègue à FastAPI.
+     * La logique de remboursement (Moneroo/CamPay) est côté FastAPI.
+     */
+    public JsonNode refundPayment(String paymentId) {
+        try {
+            return restClient.post()
+                    .uri("/api/v1/payments/{paymentId}/refund", paymentId)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientException e) {
+            log.error("FastAPI refundPayment error paymentId={}: {}", paymentId, e.getMessage());
+            return null;
+        }
+    }
 }
