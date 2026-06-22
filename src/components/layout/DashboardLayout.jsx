@@ -1,17 +1,20 @@
 /* eslint-disable no-undef */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   Menu, User, LogOut, ChevronDown, Shield,
   Bell, Sun, Moon, Globe, Search, X,
+  AlertTriangle, CheckCircle, Clock,
 } from 'lucide-react'
 import Sidebar from './Sidebar'
 import PlanBadge from '../ui/PlanBadge'
 import { useAuth } from '../../hooks/useAuth'
 import { useDispatch, useSelector } from 'react-redux'
 import { toggleSidebar, toggleTheme, toggleLocale, setSearchQuery } from '../../store/uiSlice'
-import { hotspotsApi } from '../../api/endpoints'
+import { hotspotsApi, adminSettingsApi } from '../../api/endpoints'
 import { cn } from '../../utils/cn'
+import useSystemSse from '../../hooks/useSystemSse'
+import api from '../../api/axios'
 
 // ─── Titre de page selon la route ─────────────────────────────────────
 const pageTitles = {
@@ -110,12 +113,70 @@ function ProfileDropdown({ user, isAdmin, theme, onClose }) {
 // ─── Notification bell ───────────────────────────────────────────────
 function NotificationBell() {
   const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [loading, setLoading] = useState(false)
   const theme = useSelector((state) => state.ui.theme)
+
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true)
+    try {
+      // Comptes retraits via monitoring API
+      const { data: monitoringData } = await api.get('/admin/monitoring/notifications')
+      if (monitoringData?.success && monitoringData?.data) {
+        const d = monitoringData.data
+        const count = d.notificationsTotal || 0
+        setUnreadCount(count)
+
+        // Construire la liste
+        const items = []
+        if (d.pendingWithdrawals > 0) {
+          items.push({
+            id: 'pending-withdrawals',
+            icon: AlertTriangle,
+            iconColor: 'text-amber-400',
+            bgColor: 'bg-amber-500/10',
+            title: 'Retraits en attente',
+            description: `${d.pendingWithdrawals} retrait${d.pendingWithdrawals > 1 ? 's' : ''} à valider`,
+            time: 'Maintenant',
+          })
+        }
+        if (d.withdrawalsToday > 0) {
+          items.push({
+            id: 'withdrawals-today',
+            icon: CheckCircle,
+            iconColor: 'text-emerald-400',
+            bgColor: 'bg-emerald-500/10',
+            title: 'Retraits aujourd\'hui',
+            description: `${d.withdrawalsToday} retrait${d.withdrawalsToday > 1 ? 's' : ''} effectué${d.withdrawalsToday > 1 ? 's' : ''}`,
+            time: 'Aujourd\'hui',
+          })
+        }
+        setNotifications(items)
+      }
+    } catch {
+      // Silencieux
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Chargement initial
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
+
+  // SSE temps réel — rafraîchir les notifications à chaque événement système
+  useSystemSse({
+    settings_updated: () => fetchNotifications(),
+    faq_updated: () => fetchNotifications(),
+    // notifications_updated sera supporté quand le backend l'émettra
+  })
 
   return (
     <div className="relative">
       <button
-        onClick={() => setNotifOpen(!notifOpen)}
+        onClick={() => { setNotifOpen(!notifOpen); if (!notifOpen) fetchNotifications() }}
         className={cn(
           'relative p-2 rounded-xl transition-all',
           theme === 'dark'
@@ -124,10 +185,18 @@ function NotificationBell() {
         )}
       >
         <Bell className="w-4 h-4" />
-        <span className={cn(
-          'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2',
-          theme === 'dark' ? 'bg-red-500 ring-slate-950' : 'bg-red-500 ring-white',
-        )} />
+        {unreadCount > 0 ? (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold ring-2
+            bg-red-500 text-white ring-slate-950 dark:ring-slate-950"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        ) : (
+          <span className={cn(
+            'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ring-2',
+            theme === 'dark' ? 'bg-slate-600 ring-slate-950' : 'bg-slate-300 ring-white',
+          )} />
+        )}
       </button>
 
       {notifOpen && (
@@ -140,14 +209,47 @@ function NotificationBell() {
               ? 'bg-slate-900 border-slate-800 shadow-black/50'
               : 'bg-white border-slate-200 shadow-slate-200/50',
           )}>
-            <div className={cn('p-3 border-b', theme === 'dark' ? 'border-slate-800' : 'border-slate-200')}>
+            <div className={cn('p-3 border-b flex items-center justify-between', theme === 'dark' ? 'border-slate-800' : 'border-slate-200')}>
               <p className={cn('text-xs font-semibold', theme === 'dark' ? 'text-white' : 'text-slate-900')}>
                 Notifications
+                {unreadCount > 0 && (
+                  <span className={cn('ml-1.5 text-[10px] font-normal', theme === 'dark' ? 'text-slate-500' : 'text-slate-400')}>
+                    · {unreadCount} non lue{unreadCount > 1 ? 's' : ''}
+                  </span>
+                )}
               </p>
+              {loading && <Clock className="w-3 h-3 text-slate-500 animate-spin" />}
             </div>
-            <div className={cn('p-6 text-center text-xs', theme === 'dark' ? 'text-slate-500' : 'text-slate-400')}>
-              Aucune notification
-            </div>
+
+            {notifications.length > 0 ? (
+              <div className="max-h-64 overflow-y-auto">
+                {notifications.map((n) => (
+                  <div key={n.id} className={cn(
+                    'flex items-start gap-3 px-4 py-3 border-b last:border-0 transition-colors',
+                    theme === 'dark' ? 'border-slate-800 hover:bg-slate-800/30' : 'border-slate-100 hover:bg-slate-50',
+                  )}>
+                    <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center shrink-0', n.bgColor)}>
+                      <n.icon className={cn('w-4 h-4', n.iconColor)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn('text-xs font-medium', theme === 'dark' ? 'text-white' : 'text-slate-900')}>
+                        {n.title}
+                      </p>
+                      <p className={cn('text-[11px] mt-0.5', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
+                        {n.description}
+                      </p>
+                    </div>
+                    <span className={cn('text-[10px] shrink-0', theme === 'dark' ? 'text-slate-600' : 'text-slate-400')}>
+                      {n.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={cn('p-6 text-center text-xs', theme === 'dark' ? 'text-slate-500' : 'text-slate-400')}>
+                {loading ? 'Chargement...' : 'Aucune notification'}
+              </div>
+            )}
           </div>
         </>
       )}

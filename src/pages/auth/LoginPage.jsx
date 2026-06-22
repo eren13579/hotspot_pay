@@ -1,17 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import LeftPanel from "../../components/auth/LeftPanel";
 import AuthLoader from "../../components/loader/AuthLoader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { ArrowLeft } from "lucide-react";
+import { twoFactorLogin, clearTwoFactorState } from "../../store/authSlice";
+import { ArrowLeft, ShieldAlert } from "lucide-react";
 
 function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => {
     return localStorage.getItem('hotspotpay-remember') === 'true';
   });
+  const [totpCode, setTotpCode] = useState('');
+  const totpInputRef = useRef(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { login, loading, error, clearError, google } = useAuth();
+  const { requiresTwoFactor, tempToken } = useSelector(state => state.auth);
 
   useEffect(() => {
     if (error) {
@@ -21,6 +27,12 @@ function LoginPage() {
       return () => clearTimeout(timer);
     }
   }, [error, clearError]);
+
+  useEffect(() => {
+    if (requiresTwoFactor && totpInputRef.current) {
+      totpInputRef.current.focus();
+    }
+  }, [requiresTwoFactor]);
 
   const [formData, setFormData] = useState(() => ({
     email: localStorage.getItem('hotspotpay-saved-email') || '',
@@ -44,6 +56,21 @@ function LoginPage() {
     await login(formData.email, formData.password);
   };
 
+  const handleTotpSubmit = async (e) => {
+    e.preventDefault();
+    if (totpCode.length < 6) return;
+    const result = await dispatch(twoFactorLogin({ tempToken, totpCode }));
+    if (twoFactorLogin.fulfilled.match(result)) {
+      dispatch(clearTwoFactorState());
+      navigate('/dashboard');
+    }
+  };
+
+  const handleBackToLogin = () => {
+    dispatch(clearTwoFactorState());
+    setTotpCode('');
+  };
+
   const handleRegister = () => navigate("/sign-up");
   const togglePassword = () => setShowPassword(!showPassword);
 
@@ -64,9 +91,74 @@ function LoginPage() {
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
+
         {loading ? (
-          <AuthLoader label="Authentification..." />
+          <AuthLoader label={requiresTwoFactor ? "Vérification..." : "Authentification..."} />
+        ) : requiresTwoFactor ? (
+          /* ── Étape 2FA ── */
+          <form onSubmit={handleTotpSubmit} className="flex flex-col gap-5 w-full max-w-md p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col items-center lg:hidden mb-2">
+              <div className="text-2xl font-bold text-white">
+                Hotspot<span className="text-orange-500">Pay</span>
+              </div>
+              <div className="w-8 h-0.5 bg-linear-to-r from-transparent via-orange-500 to-transparent mt-2 mb-1" />
+              <p className="text-xs text-slate-500">Connexion sécurisée</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-4">
+                <ShieldAlert className="w-6 h-6 text-blue-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-white">Authentification à deux facteurs</h1>
+              <p className="text-sm text-slate-400 mt-1">
+                Saisissez le code à 6 chiffres généré par votre application d'authentification
+              </p>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-lg text-center border border-red-500/20">
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-slate-300 text-sm font-medium">Code de vérification</label>
+              <input
+                ref={totpInputRef}
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={totpCode}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  setTotpCode(val);
+                  if (error) clearError();
+                }}
+                placeholder="000000"
+                className="h-14 w-full rounded-lg bg-slate-800 border border-slate-700 px-3 text-white placeholder-slate-500 text-2xl text-center font-mono tracking-widest focus:outline-none focus:border-orange-500 transition-colors"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={totpCode.length < 6}
+              className="h-12 sm:h-11 rounded-lg bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Vérifier
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBackToLogin}
+              className="text-center text-xs text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+            >
+              Retour à la connexion
+            </button>
+          </form>
         ) : (
+          /* ── Formulaire de connexion standard ── */
           <form
             onSubmit={handleSubmit}
             className="flex flex-col gap-5 w-full max-w-md p-4 sm:p-6 md:p-8"

@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import {
   Save, Loader2, RefreshCw, Settings,
   SlidersHorizontal, Palette, Info, CreditCard,
-  Server, Globe, Shield, Bell, ChevronRight,
+  Server, Globe, Shield, Bell, ChevronRight, MessageCircle, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -18,6 +18,8 @@ import FastApiSection from '../../components/settings/FastApiSection'
 import PortalSection from '../../components/settings/PortalSection'
 import SecuritySection from '../../components/settings/SecuritySection'
 import NotificationsSection from '../../components/settings/NotificationsSection'
+import FAQSection from '../../components/settings/FAQSection'
+import WithdrawalsSection from '../../components/settings/WithdrawalsSection'
 
 const SECTIONS = [
   { key: 'general',       label: 'Général',      icon: SlidersHorizontal },
@@ -28,6 +30,8 @@ const SECTIONS = [
   { key: 'portal',        label: 'Portail',      icon: Globe },
   { key: 'security',      label: 'Sécurité',     icon: Shield },
   { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'withdrawals',   label: 'Retraits',     icon: Download },
+  { key: 'faq',           label: 'FAQ',          icon: MessageCircle },
 ]
 
 const SECTION_MAP = {
@@ -39,6 +43,8 @@ const SECTION_MAP = {
   portal: PortalSection,
   security: SecuritySection,
   notifications: NotificationsSection,
+  withdrawals: WithdrawalsSection,
+  faq: FAQSection,
 }
 
 const SECTION_ORDER = SECTIONS.map((s) => s.key)
@@ -296,7 +302,11 @@ export default function AdminSettingsPage() {
           {/* Compteur */}
           <div className="mt-4 pt-4 border-t border-slate-800/50 px-3.5">
             <p className="text-[10px] text-slate-600">
-              <span className="text-blue-400 font-semibold">{activeSection?.items?.length || 0}</span> paramètres dans cette section
+              {activeTab === 'faq' ? (
+                'FAQ gérées par l\'administrateur'
+              ) : (
+                <><span className="text-blue-400 font-semibold">{activeSection?.items?.length || 0}</span> paramètres dans cette section</>
+              )}
             </p>
           </div>
         </aside>
@@ -312,7 +322,9 @@ export default function AdminSettingsPage() {
           transition={{ duration: 0.2, ease: 'easeOut' }}
           className="flex-1 min-w-0 space-y-5"
         >
-          {SectionComponent && activeSection ? (
+          {activeTab === 'faq' ? (
+            <FAQSection />
+          ) : SectionComponent && activeSection ? (
             <SectionComponent
               items={activeSection.items}
               values={values}

@@ -241,6 +241,7 @@ export default function HotspotsPage() {
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
+            showOwner={isAdmin && scope === 'global'}
           />
         ) : (
           <HotspotsCardGrid

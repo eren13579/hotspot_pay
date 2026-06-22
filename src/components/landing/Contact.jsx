@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, MessageSquare, Mail, Loader2 } from "lucide-react";
 import { usePublicSettings } from "../../context/PublicSettingsContext";
+import { contactApi } from "../../api/endpoints";
 
 function Contact() {
   const { settings } = usePublicSettings();
@@ -10,17 +11,27 @@ function Contact() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
+    setError(null);
+    try {
+      const { data } = await contactApi.submit(formData);
+      if (data?.success || data?.success !== false) {
+        setSubmitted(true);
+        setFormData({ fullName: "", phone: "", email: "", message: "" });
+      } else {
+        setError(data?.message || "Erreur lors de l'envoi");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Erreur de connexion. Veuillez réessayer.");
+    } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
-      setFormData({ fullName: "", phone: "", email: "", message: "" });
-    }, 1800);
+    }
   };
 
   return (
@@ -98,6 +109,11 @@ function Contact() {
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+                    {error}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wide">Nom complet</label>

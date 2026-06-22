@@ -1,6 +1,11 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api/V1'
+const API_BASE_URL = '/api/V1'
+
+const clearAllCache = () => {
+  localStorage.clear()
+  sessionStorage.clear()
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -46,8 +51,7 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken')
       if (!refreshToken) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        clearAllCache()
         window.location.href = '/sign-in'
         return Promise.reject(error)
       }
@@ -69,8 +73,7 @@ api.interceptors.response.use(
         }
       } catch (err) {
         processQueue(err, null)
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        clearAllCache()
         window.location.href = '/sign-in'
         return Promise.reject(err)
       } finally {

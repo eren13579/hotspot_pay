@@ -8,7 +8,7 @@ import {
   Repeat, Settings, LogOut, ChevronLeft, Shield,
   Store, PlusCircle, Wallet, Receipt, Download,
   Router, UserCheck, ChevronDown, Tag,
-  ArrowUpCircle, Activity, LifeBuoy,
+  ArrowUpCircle, Activity, LifeBuoy, MessageSquare,
 } from 'lucide-react'
 import useAdminNotifications from '../../hooks/useAdminNotifications'
 
@@ -60,6 +60,7 @@ const adminNav = [
     type: 'group', label: 'Administration', icon: Shield,
     items: [
       { to: '/dashboard/admin/users', icon: Users, label: 'Utilisateurs' },
+      { to: '/dashboard/admin/tickets', icon: MessageSquare, label: 'Tickets' },
       { to: '/dashboard/admin/router-brands', icon: Router, label: 'Marques routeurs' },
       { to: '/dashboard/admin/monitoring', icon: Activity, label: 'Monitoring' },
       { to: '/dashboard/admin/payments', icon: Wallet, label: 'Paiements' },

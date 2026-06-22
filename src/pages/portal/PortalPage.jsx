@@ -14,6 +14,7 @@ const STATUS = {
   CONNECTING: 'connecting',  // activation WiFi en cours
   CONNECTED:  'connected',   // ✅ succès
   FAILED:     'failed',      // ❌ échec
+  CREDENTIALS_READY: 'credentials_ready', // paiement OK, en attente connexion manuelle
 }
 
 // Seuls les opérateurs Mobile Money — le backend route via Moneroo ou CamPay (agrégateur actif)
@@ -223,6 +224,99 @@ function SuccessScreen({ session, hotspotName, credentials }) {
   )
 }
 
+/* ── CredentialsReadyScreen (auto-connect désactivé) ────────────────────── */
+
+function CredentialsReadyScreen({ credentials, hotspotName, onConnect, onCancel }) {
+  const [copiedField, setCopiedField] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const copyField = async (label, value) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedField(label)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch { /* silencieux */ }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="flex flex-col items-center gap-5 py-8 px-6 text-center"
+    >
+      <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+        <CheckCircle className="w-8 h-8 text-emerald-400" />
+      </div>
+
+      <div>
+        <h2 className="text-[#F5F0EB] text-xl font-bold mb-1">✅ Paiement confirmé !</h2>
+        <p className="text-[#6B6258] text-xs max-w-xs">
+          {hotspotName ? `WiFi ${hotspotName}` : 'Vos identifiants WiFi sont prêts'}
+        </p>
+        <p className="text-[#6B6258] text-[11px] mt-2 max-w-xs">
+          Connectez-vous au réseau WiFi et entrez ces identifiants pour accéder à internet.
+        </p>
+      </div>
+
+      {/* ── Credentials ── */}
+      {credentials && (
+        <div className="w-full max-w-xs space-y-2">
+          {/* Username */}
+          {credentials.username && (
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#1C1713] border border-[#2A231D]">
+              <div className="text-left min-w-0 flex-1">
+                <span className="text-[#6B6258] text-[10px] block">Identifiant</span>
+                <span className="text-[#F5F0EB] text-sm font-mono truncate block">{credentials.username}</span>
+              </div>
+              <button onClick={() => copyField('user', credentials.username)}
+                className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6258] hover:text-[#F5F0EB] hover:bg-white/5 transition-all">
+                {copiedField === 'user' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          )}
+          {/* Password */}
+          {credentials.password && (
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#1C1713] border border-[#2A231D]">
+              <div className="text-left min-w-0 flex-1">
+                <span className="text-[#6B6258] text-[10px] block">Mot de passe</span>
+                <span className="text-[#F5F0EB] text-sm font-mono truncate block">
+                  {showPassword ? credentials.password : '••••••••'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setShowPassword(v => !v)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6258] hover:text-[#F5F0EB] hover:bg-white/5 transition-all">
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+                <button onClick={() => copyField('pass', credentials.password)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6B6258] hover:text-[#F5F0EB] hover:bg-white/5 transition-all">
+                  {copiedField === 'pass' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Bouton Se connecter ── */}
+      <button
+        onClick={onConnect}
+        className="flex items-center justify-center gap-2 w-full max-w-xs py-3.5 rounded-xl bg-[#F59E0B] text-[#0C0A08] font-bold text-sm hover:bg-[#D4880A] transition-all active:scale-[0.98] shadow-lg shadow-[#F59E0B]/20"
+      >
+        <Wifi className="w-4 h-4" /> Se connecter au WiFi
+      </button>
+
+      {/* ── Lien annuler ── */}
+      <button onClick={onCancel}
+        className="text-[#6B6258] text-xs underline hover:text-[#F5F0EB] transition-colors"
+      >
+        Annuler et recommencer
+      </button>
+    </motion.div>
+  )
+}
+
 /* ── Main Component ──────────────────────────────────────────────────── */
 
 export default function PortalPage() {
@@ -253,6 +347,9 @@ export default function PortalPage() {
   const [activeCredentials, setActiveCredentials] = useState(null)
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const savedCredentials = getSavedCredentials()
+
+  // Connexion manuelle (auto-connect désactivé)
+  const [manualCredentials, setManualCredentials] = useState(null)
 
   // ── Chargement initial ──────────────────────────────────────────────
 
@@ -354,6 +451,18 @@ export default function PortalPage() {
             setActiveCredentials(cred)
             return
           }
+          if (d.credentialsAvailable) {
+            clearInterval(pollingRef.current)
+            pollingRef.current = null
+            setManualCredentials({
+              username: d.manualUsername,
+              password: d.manualPassword,
+              reference: ref,
+            })
+            setStatusMessage(d.message || 'Identifiants prêts')
+            setStatus(STATUS.CREDENTIALS_READY)
+            return
+          }
           if (d.activationPending) {
             setStatusMessage('✅ Paiement confirmé ! Activation WiFi en cours...')
             return
@@ -378,6 +487,84 @@ export default function PortalPage() {
         setStatus(STATUS.FAILED)
       }
     }, 5000)
+  }
+
+  // Connexion manuelle (auto-connect désactivé)
+  const handleManualConnect = async () => {
+    if (!paymentRef) return
+    setStatus(STATUS.CONNECTING)
+    setStatusMessage('Activation WiFi en cours...')
+    try {
+      const { data } = await portalApi.connectManually(paymentRef, mac)
+      if (data?.success) {
+        // Redémarrer le polling — le backend a créé la session PENDING_MIKROTIK
+        // Le polling va détecter wifiActivated ou activationPending
+        startPollingAfterConnect(paymentRef)
+      } else {
+        throw new Error(data?.message || 'Erreur d\'activation')
+      }
+    } catch (err) {
+      setStatusMessage(err?.response?.data?.message || err?.message || 'Erreur d\'activation')
+      setStatus(STATUS.FAILED)
+    }
+  }
+
+  // Version du polling qui commence immédiatement (pas d'intervalle au début)
+  const startPollingAfterConnect = (ref) => {
+    let attempts = 0
+    const maxAttempts = 36  // 3 minutes (5s × 36)
+
+    // Vérifier immédiatement au cas où FastAPI a déjà répondu
+    const doPoll = async () => {
+      attempts++
+      try {
+        const { data } = await portalApi.paymentStatus(ref)
+        if (data?.success && data?.data) {
+          const d = data.data
+          if (d.wifiActivated) {
+            if (pollingRef.current) clearInterval(pollingRef.current)
+            pollingRef.current = null
+            setSessionData(d.session || null)
+            setStatus(STATUS.CONNECTED)
+            // Sauvegarde des credentials WiFi (username + password)
+            const cred = {
+              type: 'payment',
+              username: manualCredentials?.username || d.manualUsername,
+              password: manualCredentials?.password || d.manualPassword,
+              phone,
+              reference: ref,
+              operator,
+              planName: selectedPlan?.name,
+              hotspotName: hotspot?.hotspotName,
+            }
+            saveCredentials(cred)
+            setActiveCredentials(cred)
+            return true
+          }
+          if (d.activationPending) {
+            setStatusMessage('✅ Activation WiFi en cours (quelques secondes)...')
+            return false
+          }
+        }
+      } catch { /* silencieux */ }
+      return false
+    }
+
+    // Vérification immédiate
+    doPoll().then(done => {
+      if (done) return
+      // Puis polling 5s
+      pollingRef.current = setInterval(async () => {
+        const done = await doPoll()
+        if (done) return
+        if (attempts >= maxAttempts) {
+          clearInterval(pollingRef.current)
+          pollingRef.current = null
+          setStatusMessage('Délai dépassé. Veuillez réessayer.')
+          setStatus(STATUS.FAILED)
+        }
+      }, 5000)
+    })
   }
 
   // Connexion par ticket
@@ -421,6 +608,7 @@ export default function PortalPage() {
     setTicketPass('')
     setStatusMessage('')
     setActiveCredentials(null)
+    setManualCredentials(null)
     setShowCredentialsModal(false)
     setStatus(STATUS.IDLE)
   }
@@ -444,6 +632,20 @@ export default function PortalPage() {
     return (
       <PageShell>
         <SuccessScreen session={sessionData} hotspotName={hotspot?.hotspotName} credentials={activeCredentials} />
+      </PageShell>
+    )
+  }
+
+  // === CREDENTIALS_READY ===
+  if (status === STATUS.CREDENTIALS_READY) {
+    return (
+      <PageShell>
+        <CredentialsReadyScreen
+          credentials={manualCredentials}
+          hotspotName={hotspot?.hotspotName}
+          onConnect={handleManualConnect}
+          onCancel={handleRetry}
+        />
       </PageShell>
     )
   }

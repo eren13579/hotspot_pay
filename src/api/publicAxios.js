@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api/V1'
+const API_BASE_URL = '/api/V1'
 
 /** Instance axios sans intercepteurs JWT — pour les routes publiques (portail captif) */
 const publicApi = axios.create({

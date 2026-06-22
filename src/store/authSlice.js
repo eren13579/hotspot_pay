@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { authApi } from '../api/auth'
+import { twoFactorApi } from '../api/endpoints'
 
 export const loginUser = createAsyncThunk(
   'auth/login',
@@ -8,6 +9,19 @@ export const loginUser = createAsyncThunk(
       const { data } = await authApi.login(email, password)
       if (data.success) return { data: data.data, message: data.message, email }
       return rejectWithValue(data.message || 'Échec de la connexion')
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || 'Erreur réseau')
+    }
+  }
+)
+
+export const twoFactorLogin = createAsyncThunk(
+  'auth/twoFactorLogin',
+  async ({ tempToken, totpCode }, { rejectWithValue }) => {
+    try {
+      const { data } = await twoFactorApi.authenticate(tempToken, totpCode)
+      if (data.success) return { data: data.data, message: data.message }
+      return rejectWithValue(data.message || 'Code de vérification invalide')
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Erreur réseau')
     }
@@ -85,6 +99,8 @@ const initialState = {
   loading: false,
   error: null,
   fieldErrors: {},
+  requiresTwoFactor: false,
+  tempToken: null,
 }
 
 const authSlice = createSlice({
@@ -110,6 +126,10 @@ const authSlice = createSlice({
     clearNewUserFlag: (state) => {
       state.isNewUser = false
     },
+    clearTwoFactorState: (state) => {
+      state.requiresTwoFactor = false
+      state.tempToken = null
+    },
     resetAuth: () => {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
@@ -124,8 +144,18 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        if (action.payload.data.requiresTwoFactor) {
+          // 2FA requise — stocker le tempToken, pas de tokens
+          state.loading = false
+          state.requiresTwoFactor = true
+          state.tempToken = action.payload.data.tempToken
+          state.userId = action.payload.data.userId
+          return
+        }
         state.loading = false
         state.error = null
+        state.requiresTwoFactor = false
+        state.tempToken = null
         state.userId = action.payload.data.userId
         state.role = action.payload.data.role
         state.accessToken = action.payload.data.accessToken
@@ -144,6 +174,35 @@ const authSlice = createSlice({
         }
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+      // -- 2FA LOGIN (deuxième facteur) --
+      .addCase(twoFactorLogin.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(twoFactorLogin.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+        state.requiresTwoFactor = false
+        state.tempToken = null
+        state.userId = action.payload.data.userId
+        state.role = action.payload.data.role
+        state.accessToken = action.payload.data.accessToken
+        state.refreshToken = action.payload.data.refreshToken
+        state.isAuthenticated = true
+        state.user = {
+          userId: action.payload.data.userId,
+          role: action.payload.data.role,
+          planType: action.payload.data.planType,
+        }
+        localStorage.setItem('accessToken', action.payload.data.accessToken)
+        if (action.payload.data.refreshToken) {
+          localStorage.setItem('refreshToken', action.payload.data.refreshToken)
+        }
+      })
+      .addCase(twoFactorLogin.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
@@ -188,9 +247,6 @@ const authSlice = createSlice({
       })
       .addCase(fetchMe.rejected, (state, action) => {
         state.loading = false
-        // NE PAS réinitialiser l'auth ! Les vraies erreurs 401 sont déjà
-        // gérées par l'intercepteur axios (refresh → redirect /sign-in).
-        // Un 429 (rate limit) ne doit PAS déconnecter l'utilisateur.
         state.error = typeof action.payload === 'string' ? action.payload : 'Erreur de chargement du profil'
       })
       // -- LOGOUT --
@@ -205,5 +261,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, setTokens, setUser, clearNewUserFlag, resetAuth } = authSlice.actions
+export const { clearError, setTokens, setUser, clearNewUserFlag, clearTwoFactorState, resetAuth } = authSlice.actions
 export default authSlice.reducer

@@ -23,11 +23,12 @@ import Pagination from '../ui/Pagination'
  *  - page                : number
  *  - totalPages          : number
  *  - onPageChange        : fn(page)
+ *  - showOwner           : boolean — affiche la colonne propriétaire (admin global)
  */
 export default function HotspotsTable({
   hotspots, isLight, selectedIds, onToggleSelect, allFilteredSelected, onToggleSelectAll,
   getHotspotId, onDetail, planLevel, testingId, onTest,
-  page, totalPages, onPageChange,
+  page, totalPages, onPageChange, showOwner,
 }) {
   const textPrimary = isLight ? 'text-slate-900' : 'text-white'
   const textSecondary = isLight ? 'text-slate-500' : 'text-slate-400'
@@ -51,6 +52,7 @@ export default function HotspotsTable({
             <th className={cn('text-left px-6 py-3 font-semibold hidden sm:table-cell', textMuted)}>IP</th>
             <th className={cn('text-left px-6 py-3 font-semibold hidden md:table-cell', textMuted)}>Localisation</th>
             <th className={cn('text-left px-6 py-3 font-semibold hidden lg:table-cell', textMuted)}>Marque</th>
+            {showOwner && <th className={cn('text-left px-6 py-3 font-semibold hidden xl:table-cell', textMuted)}>Propriétaire</th>}
             <th className={cn('text-left px-6 py-3 font-semibold', textMuted)}>Statut</th>
             <th className={cn('text-left px-6 py-3 font-semibold hidden md:table-cell', textMuted)}>
               <span className="flex items-center gap-1"><Shield className="w-3 h-3" />Token</span>
@@ -108,6 +110,11 @@ export default function HotspotsTable({
                 <td className={cn('px-6 py-3.5 hidden lg:table-cell', textSecondary)}>
                   {h.router_brand || '—'}
                 </td>
+                {showOwner && (
+                  <td className={cn('px-6 py-3.5 hidden xl:table-cell', textSecondary)}>
+                    <span className="text-[10px]">{h.owner_name || h.owner_email || '—'}</span>
+                  </td>
+                )}
                 <td className="px-6 py-3.5">
                   <span className={cn(
                     'inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-medium',

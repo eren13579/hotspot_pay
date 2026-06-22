@@ -4,11 +4,12 @@ import { useSelector } from 'react-redux'
 import {
   User, Mail, Phone, Key, Shield, Crown, Wifi,
   Loader2, Eye, EyeOff, AlertCircle, Save,
-  Fingerprint, Calendar,
+  Fingerprint, Calendar, Smartphone, Check, X, Plug,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { usersApi } from '../../api/endpoints'
+import { QRCodeSVG } from 'qrcode.react'
+import { usersApi, twoFactorApi } from '../../api/endpoints'
 import { cn } from '../../utils/cn'
 import { formatDateTime } from '../../utils/format'
 import { ConnectivityPulse } from '../../components/ui'
@@ -200,8 +201,15 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     fullName: '', phone: '', email: '',
     password: '', confirmPassword: '',
+    autoConnect: false,
   })
   const [formErrors, setFormErrors] = useState({})
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false)
+  const [twoFactorSetup, setTwoFactorSetup] = useState(null)
+  const [totpCode, setTotpCode] = useState('')
+  const [disablePassword, setDisablePassword] = useState('')
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false)
 
   const validateField = (field, value) => {
     setFormErrors((prev) => {
@@ -238,6 +246,7 @@ export default function ProfilePage() {
             email: u.email || '',
             password: '',
             confirmPassword: '',
+            autoConnect: u.autoConnect ?? false,
           })
         } else {
           setError(meRes.reason?.message || 'Impossible de charger le profil')
@@ -252,6 +261,11 @@ export default function ProfilePage() {
       }
     }
     fetchData()
+
+    // Charger le statut 2FA
+    twoFactorApi.status()
+      .then(({ data }) => setTwoFactorEnabled(data?.data?.enabled || false))
+      .catch(() => {}) // Silencieux — la 2FA n'est pas critique pour le profil
   }, [])
 
   const handleSave = async () => {
@@ -264,7 +278,7 @@ export default function ProfilePage() {
     }
     setSaving(true)
     try {
-      const updateData = { fullName: form.fullName, phone: form.phone }
+      const updateData = { fullName: form.fullName, phone: form.phone, autoConnect: form.autoConnect }
       if (form.password) updateData.password = form.password
       const { data } = await usersApi.update(updateData)
       if (data?.success) {
@@ -483,6 +497,137 @@ export default function ProfilePage() {
         </motion.div>
       </div>
 
+      {/* ══════════ 2FA ══════════ */}
+      <motion.div variants={item}>
+        <div className="relative rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-xl shadow-xl shadow-black/20 p-5 hover:border-slate-700/80 transition-all duration-300">
+          <div className="flex items-center gap-3 mb-5">
+            <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center',
+              twoFactorEnabled
+                ? 'bg-emerald-500/10 border-emerald-500/20'
+                : 'bg-slate-500/10 border-slate-500/20')}>
+              <Smartphone className={cn('w-4 h-4', twoFactorEnabled ? 'text-emerald-400' : 'text-slate-400')} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-sm font-bold text-white">Authentification à deux facteurs</h2>
+              <p className="text-[10px] text-slate-500">
+                {twoFactorEnabled
+                  ? 'Votre compte est sécurisé par 2FA'
+                  : 'Ajoutez une couche de sécurité supplémentaire'}
+              </p>
+            </div>
+            <div className={cn('px-2.5 py-1 rounded-full text-[10px] font-bold border',
+              twoFactorEnabled
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-slate-500/10 text-slate-400 border-slate-500/20')}>
+              {twoFactorEnabled ? 'Activé' : 'Désactivé'}
+            </div>
+          </div>
+
+          {twoFactorEnabled ? (
+            /* ── 2FA activée → désactivation ── */
+            <div className="space-y-3">
+              {!showDisableConfirm ? (
+                <button onClick={() => setShowDisableConfirm(true)}
+                  className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 text-[11px] font-medium hover:bg-red-500/20 transition-colors cursor-pointer">
+                  Désactiver la 2FA
+                </button>
+              ) : (
+                <div className={cn('rounded-xl border p-4 space-y-3', 'bg-slate-800/30 border-slate-700')}>
+                  <p className="text-[11px] text-slate-400">
+                    Veuillez entrer votre mot de passe pour désactiver la 2FA.
+                  </p>
+                  <input type="password" value={disablePassword}
+                    onChange={e => setDisablePassword(e.target.value)}
+                    placeholder="Votre mot de passe"
+                    className="w-full px-3 py-2 rounded-lg border bg-slate-800/50 border-slate-700 text-white text-xs placeholder:text-slate-500 outline-none" />
+                  <div className="flex items-center gap-2">
+                    <button onClick={async () => {
+                      if (!disablePassword) { toast.error('Mot de passe requis'); return }
+                      setTwoFactorLoading(true)
+                      try {
+                        await twoFactorApi.disable(disablePassword)
+                        setTwoFactorEnabled(false)
+                        setShowDisableConfirm(false)
+                        setDisablePassword('')
+                        toast.success('2FA désactivée')
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || 'Erreur de désactivation')
+                      } finally { setTwoFactorLoading(false) }
+                    }} disabled={twoFactorLoading}
+                      className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-white text-[11px] font-medium transition-colors disabled:opacity-50 cursor-pointer">
+                      {twoFactorLoading ? 'Désactivation...' : 'Confirmer la désactivation'}
+                    </button>
+                    <button onClick={() => { setShowDisableConfirm(false); setDisablePassword('') }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 text-[11px] hover:bg-slate-800 transition-colors cursor-pointer">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : twoFactorSetup ? (
+            /* ── Configuration 2FA en cours ── */
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-3 py-3">
+                <div className="bg-white p-3 rounded-xl">
+                  <QRCodeSVG value={twoFactorSetup.qrUri} size={160} />
+                </div>
+                <p className="text-[11px] text-slate-400 text-center max-w-xs">
+                  Scannez ce code avec Google Authenticator, Authy ou toute autre application TOTP.
+                </p>
+                <div className={cn('rounded-xl border p-3 w-full', 'bg-slate-800/30 border-slate-700')}>
+                  <p className="text-[10px] text-slate-500 mb-1">Ou saisissez la clé manuellement :</p>
+                  <p className="text-xs font-mono text-slate-300 break-all select-all">{twoFactorSetup.secret}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] text-slate-400 font-medium">Code de vérification</label>
+                <input type="text" inputMode="numeric" maxLength={6} value={totpCode}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  className="w-full px-3 py-2.5 rounded-lg border bg-slate-800/50 border-slate-700 text-white text-center text-lg font-mono tracking-widest placeholder:text-slate-500 outline-none" />
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={async () => {
+                  if (totpCode.length < 6) { toast.error('Entrez le code à 6 chiffres'); return }
+                  setTwoFactorLoading(true)
+                  try {
+                    await twoFactorApi.enable(twoFactorSetup.secret, parseInt(totpCode))
+                    setTwoFactorEnabled(true)
+                    setTwoFactorSetup(null)
+                    setTotpCode('')
+                    toast.success('2FA activée avec succès')
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || 'Code invalide')
+                  } finally { setTwoFactorLoading(false) }
+                }} disabled={twoFactorLoading || totpCode.length < 6}
+                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-[11px] font-medium transition-colors disabled:opacity-50 cursor-pointer">
+                  {twoFactorLoading ? 'Vérification...' : 'Activer la 2FA'}
+                </button>
+                <button onClick={() => { setTwoFactorSetup(null); setTotpCode('') }}
+                  className="px-3 py-2 rounded-lg border border-slate-700 text-slate-400 text-[11px] hover:bg-slate-800 transition-colors cursor-pointer">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ── 2FA désactivée → activation ── */
+            <button onClick={async () => {
+              setTwoFactorLoading(true)
+              try {
+                const { data } = await twoFactorApi.setup()
+                setTwoFactorSetup(data?.data || null)
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Erreur de configuration')
+              } finally { setTwoFactorLoading(false) }
+            }} disabled={twoFactorLoading}
+              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-[11px] font-medium transition-colors disabled:opacity-50 cursor-pointer">
+              {twoFactorLoading ? 'Préparation...' : 'Activer la 2FA'}
+            </button>
+          )}
+        </div>
+      </motion.div>
+
       {/* ══════════ Détails du compte (mini cartes) ══════════ */}
       <motion.div variants={item}>
         <div className="relative rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-xl shadow-xl shadow-black/20 p-5 hover:border-slate-700/80 transition-all duration-300">
@@ -582,6 +727,82 @@ export default function ProfilePage() {
           </div>
         </motion.div>
       )}
+
+      {/* ══════════ Connexion automatique ══════════ */}
+      <motion.div variants={item}>
+        <div className="relative rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-xl shadow-xl shadow-black/20 p-5 hover:border-slate-700/80 transition-all duration-300">
+          <div className="flex items-start gap-4">
+            <div className={cn('w-10 h-10 rounded-xl border flex items-center justify-center shrink-0',
+              form.autoConnect
+                ? 'bg-amber-500/10 border-amber-500/20'
+                : 'bg-slate-500/10 border-slate-500/20')}>
+              <Plug className={cn('w-5 h-5', form.autoConnect ? 'text-amber-400' : 'text-slate-400')} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-bold text-white">Connexion automatique</h2>
+                  <p className="text-[10px] text-slate-500 mt-0.5 max-w-md">
+                    Après un paiement, le client est immédiatement connecté au WiFi sans avoir à saisir ses identifiants manuellement.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.autoConnect}
+                  onClick={() => {
+                    const newVal = !form.autoConnect
+                    setForm(prev => ({ ...prev, autoConnect: newVal }))
+                    // Sauvegarde automatique
+                    setSaving(true)
+                    usersApi.update({ autoConnect: newVal })
+                      .then(({ data }) => {
+                        if (data?.success) {
+                          toast.success(newVal ? 'Connexion automatique activée' : 'Connexion manuelle activée')
+                        }
+                      })
+                      .catch(() => toast.error('Erreur lors de la mise à jour'))
+                      .finally(() => setSaving(false))
+                  }}
+                  disabled={saving}
+                  className={cn(
+                    'relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                    form.autoConnect ? 'bg-amber-500' : 'bg-slate-700',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
+                  )}
+                >
+                  <span className={cn(
+                    'pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out',
+                    form.autoConnect ? 'translate-x-5' : 'translate-x-0',
+                  )} />
+                </button>
+              </div>
+              <div className={cn(
+                'mt-3 rounded-xl border p-3 flex items-start gap-2.5',
+                form.autoConnect
+                  ? 'bg-amber-500/5 border-amber-500/10'
+                  : 'bg-blue-500/5 border-blue-500/10',
+              )}>
+                <div className={cn(
+                  'w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+                  form.autoConnect ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400',
+                )}>
+                  {form.autoConnect ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <X className="w-3 h-3" />
+                  )}
+                </div>
+                <p className={cn('text-[11px] leading-relaxed', form.autoConnect ? 'text-amber-300/80' : 'text-blue-300/80')}>
+                  {form.autoConnect
+                    ? 'Le client sera automatiquement connecté au WiFi après un paiement réussi. Aucune saisie manuelle requise.'
+                    : 'Le client devra saisir manuellement ses identifiants (reçus par email/SMS) pour se connecter au WiFi après le paiement.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }

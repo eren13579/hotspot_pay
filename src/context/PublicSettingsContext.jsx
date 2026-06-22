@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import api from '../api/axios'
+import useSystemSse from '../hooks/useSystemSse'
 
 const PublicSettingsContext = createContext(null)
 
@@ -16,6 +17,9 @@ const DEFAULTS = {
   aboutSubtitle: '',
   aboutDescription: '',
   aboutPhotos: [],
+  whatsappNumber: '+237 6XX XXX XXX',
+  docsEnabled: true,
+  docsUrl: '/docs',
 }
 
 export function PublicSettingsProvider({ children }) {
@@ -41,6 +45,22 @@ export function PublicSettingsProvider({ children }) {
   }, [])
 
   useEffect(() => { fetchSettings() }, [fetchSettings])
+
+  // SSE temps réel — dès qu'un admin modifie les settings, tous les clients sont notifiés
+  useSystemSse({
+    settings_updated: () => fetchSettings(),
+  })
+
+  // Auto-refresh au retour sur l'onglet (changement d'onglet, alt+tab, etc.)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSettings()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchSettings])
 
   return (
     <PublicSettingsContext.Provider value={{ settings, loading, error, refetch: fetchSettings }}>

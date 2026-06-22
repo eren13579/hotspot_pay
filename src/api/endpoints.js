@@ -354,10 +354,69 @@ export const routerModelAdminApi = {
 }
 
 /* ============================================
+   CONTACT (public)
+   ============================================ */
+export const contactApi = {
+  submit: (data) =>
+    api.post('/contact', data),
+}
+
+/* ============================================
+   CONTACT ADMIN (tickets support)
+   ============================================ */
+export const contactAdminApi = {
+  list: (params) =>
+    api.get('/admin/contact-messages', { params }),
+
+  get: (id) =>
+    api.get(`/admin/contact-messages/${id}`),
+
+  reply: (id, data) =>
+    api.put(`/admin/contact-messages/${id}/reply`, data),
+
+  markRead: (id) =>
+    api.patch(`/admin/contact-messages/${id}/read`),
+
+  updateStatus: (id, data) =>
+    api.patch(`/admin/contact-messages/${id}/status`, data),
+}
+
+/* ============================================
+   FAQ (publiques + admin CRUD)
+   ============================================ */
+export const faqApi = {
+  list: () =>
+    api.get('/faqs'),
+
+  adminList: () =>
+    api.get('/faqs/admin'),
+
+  create: (data) =>
+    api.post('/faqs/admin', data),
+
+  update: (id, data) =>
+    api.put(`/faqs/admin/${id}`, data),
+
+  delete: (id) =>
+    api.delete(`/faqs/admin/${id}`),
+}
+
+/* ============================================
    PORTAL CAPTIF (public — no JWT)
    Utilise publicApi pour éviter les intercepteurs auth
    ============================================ */
 import publicApi from './publicAxios'
+
+/* ============================================
+   2FA (authentification à deux facteurs)
+   ============================================ */
+export const twoFactorApi = {
+  setup: () => api.post('/auth/2fa/setup'),
+  enable: (secret, totpCode) => api.post('/auth/2fa/enable', { secret, totpCode }),
+  disable: (password) => api.post('/auth/2fa/disable', { password }),
+  status: () => api.get('/auth/2fa/status'),
+  authenticate: (tempToken, totpCode) => api.post('/auth/2fa/authenticate', { tempToken, totpCode }),
+}
 
 export const portalApi = {
   /** GET /portal/{hotspotId} — Charger la page portail (hotspot + plans + branding) */
@@ -383,4 +442,8 @@ export const portalApi = {
   /** GET /portal/{hotspotId}/tickets/{username}/info — Infos ticket */
   ticketInfo: (hotspotId, username) =>
     publicApi.get(`/portal/${hotspotId}/tickets/${username}/info`),
+
+  /** POST /portal/payment/{reference}/connect — Connexion manuelle WiFi (auto-connect désactivé) */
+  connectManually: (reference, mac) =>
+    publicApi.post(`/portal/payment/${reference}/connect?mac=${encodeURIComponent(mac || '')}`),
 }
