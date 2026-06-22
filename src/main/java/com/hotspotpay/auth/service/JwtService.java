@@ -81,6 +81,32 @@ public class JwtService {
         return accessExpirationMs;
     }
 
+    /**
+     * Génère un token temporaire (5 min) pour l'étape 2FA.
+     */
+    public String generateTempToken(User user) {
+        return Jwts.builder()
+                .subject(user.getUserId())
+                .claim("role", user.getRole().name())
+                .claim("type", "2fa_challenge")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 300_000)) // 5 min
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Valide un token temporaire 2FA.
+     */
+    public boolean validateTempToken(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return "2fa_challenge".equals(claims.get("type", String.class));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)

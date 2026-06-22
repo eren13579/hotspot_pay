@@ -104,7 +104,7 @@ public class WithdrawalController {
             @RequestBody Map<String, List<String>> body) {
         List<String> ids = body.get("withdrawalIds");
         if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Liste d'IDs requise"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("VALIDATION_ERROR", "Liste d'IDs requise"));
         }
         return ResponseEntity.ok(ApiResponse.ok(
                 ids.size() + " retrait(s) approuvé(s)",
@@ -120,7 +120,7 @@ public class WithdrawalController {
         List<String> ids = (List<String>) body.get("withdrawalIds");
         String reason = (String) body.getOrDefault("reason", "");
         if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Liste d'IDs requise"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("VALIDATION_ERROR", "Liste d'IDs requise"));
         }
         return ResponseEntity.ok(ApiResponse.ok(
                 ids.size() + " retrait(s) rejeté(s)",

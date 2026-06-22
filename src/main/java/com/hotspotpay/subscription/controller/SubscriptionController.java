@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/subscriptions")
@@ -112,32 +113,32 @@ public class SubscriptionController {
                 subscriptionService.adminCreatePlan(request)));
     }
 
-    @PutMapping("/admin/plans/{planName}")
+    @PutMapping("/admin/plans/{planId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Modifier un plan d'abonnement")
     public ResponseEntity<ApiResponse<SubscriptionPlanDto>> adminUpdatePlan(
-            @PathVariable String planName,
+            @PathVariable UUID planId,
             @Valid @RequestBody CreateSubscriptionPlanRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Plan modifié avec succès",
-                subscriptionService.adminUpdatePlan(planName, request)));
+                subscriptionService.adminUpdatePlan(planId, request)));
     }
 
-    @DeleteMapping("/admin/plans/{planName}")
+    @DeleteMapping("/admin/plans/{planId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Supprimer un plan d'abonnement")
     public ResponseEntity<ApiResponse<Void>> adminDeletePlan(
-            @PathVariable String planName) {
-        subscriptionService.adminDeletePlan(planName);
+            @PathVariable UUID planId) {
+        subscriptionService.adminDeletePlan(planId);
         return ResponseEntity.ok(ApiResponse.ok("Plan supprimé avec succès"));
     }
 
-    @PatchMapping("/admin/plans/{planName}/toggle-popular")
+    @PatchMapping("/admin/plans/{planId}/toggle-popular")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Activer/désactiver le badge 'Populaire'")
     public ResponseEntity<ApiResponse<SubscriptionPlanDto>> adminTogglePopular(
-            @PathVariable String planName) {
+            @PathVariable UUID planId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                subscriptionService.adminTogglePopular(planName)));
+                subscriptionService.adminTogglePopular(planId)));
     }
 }

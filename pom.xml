@@ -153,6 +153,11 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.warrenstrange</groupId>
+            <artifactId>googleauth</artifactId>
+            <version>1.5.0</version>
+        </dependency>
         <!-- ── Tests ────────────────────────────────────────────────────── -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -11,4 +11,10 @@ public interface PaymentService {
     PaymentStatusResponse getStatus(String reference);
     void confirmFromWebhook(String reference, String gatewayTxId, boolean success);
     Page<PaymentResponse> findByHotspot(String userId, String hotspotId, Pageable pageable);
+
+    /**
+     * Active manuellement la session WiFi après un paiement avec auto-connect désactivé.
+     * Le client a reçu ses identifiants et clique "Se connecter" sur le portail.
+     */
+    PaymentResponse connectManually(String reference, String mac);
 }

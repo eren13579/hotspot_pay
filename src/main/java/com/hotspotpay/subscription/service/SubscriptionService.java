@@ -3,6 +3,7 @@ package com.hotspotpay.subscription.service;
 import com.hotspotpay.subscription.dto.*;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface SubscriptionService {
 
@@ -26,9 +27,9 @@ public interface SubscriptionService {
 
     SubscriptionPlanDto adminCreatePlan(CreateSubscriptionPlanRequest request);
 
-    SubscriptionPlanDto adminUpdatePlan(String planName, CreateSubscriptionPlanRequest request);
+    SubscriptionPlanDto adminUpdatePlan(UUID planId, CreateSubscriptionPlanRequest request);
 
-    void adminDeletePlan(String planName);
+    void adminDeletePlan(UUID planId);
 
-    SubscriptionPlanDto adminTogglePopular(String planName);
+    SubscriptionPlanDto adminTogglePopular(UUID planId);
 }

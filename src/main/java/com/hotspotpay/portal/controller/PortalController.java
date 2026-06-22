@@ -89,4 +89,18 @@ public class PortalController {
         return ResponseEntity.ok(ApiResponse.ok(
                 portalService.checkStatus(reference)));
     }
+
+    /**
+     * Connexion manuelle — pour les paiements avec auto-connect désactivé.
+     * Le client a reçu ses credentials et clique "Se connecter" sur le portail.
+     */
+    @PostMapping("/payment/{reference}/connect")
+    @Operation(summary = "Activer la session WiFi après paiement manuel (auto-connect désactivé)")
+    public ResponseEntity<ApiResponse<PortalStatusResponse>> connectManually(
+            @PathVariable String reference,
+            @RequestParam(required = false) String mac) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Activation WiFi en cours...",
+                portalService.connectManually(reference, mac)));
+    }
 }

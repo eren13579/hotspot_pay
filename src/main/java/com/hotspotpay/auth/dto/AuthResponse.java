@@ -16,4 +16,6 @@ public class AuthResponse {
     private String userId;
     private String role;
     private String planType;
+    private boolean requiresTwoFactor;
+    private String tempToken;
 }

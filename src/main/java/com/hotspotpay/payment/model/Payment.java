@@ -89,6 +89,16 @@ public class Payment {
     @Column(name = "checkout_url", length = 1000)
     private String checkoutUrl;
 
+    @Column(name = "manual_connect")
+    @Builder.Default
+    private Boolean manualConnect = false;
+
+    @Column(name = "manual_username", length = 100)
+    private String manualUsername;
+
+    @Column(name = "manual_password", length = 100)
+    private String manualPassword;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;

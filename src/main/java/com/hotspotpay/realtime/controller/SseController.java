@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "Temps réel", description = "Server-Sent Events pour le statut paiement")
+@Tag(name = "Temps réel", description = "Server-Sent Events pour statut paiement + événements système")
 public class SseController {
 
     private final SseService sseService;
@@ -24,5 +24,17 @@ public class SseController {
     @Operation(summary = "Stream SSE pour le statut d'un paiement")
     public SseEmitter streamPaymentStatus(@PathVariable String reference) {
         return sseService.subscribe(reference);
+    }
+
+    /**
+     * SSE système — broadcast global à TOUS les clients connectés.
+     * Événements : settings_updated, faq_updated, plans_updated, etc.
+     * Le frontend utilise ce flux pour rafraîchir ses données en temps réel.
+     */
+    @GetMapping(value = "/sse/system",
+                produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Stream SSE pour les événements système globaux (settings, FAQ, etc.)")
+    public SseEmitter streamSystemEvents() {
+        return sseService.subscribeSystem();
     }
 }

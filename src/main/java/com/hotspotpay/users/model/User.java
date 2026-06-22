@@ -46,6 +46,17 @@ public class User {
 
     private Boolean isActive = true;
 
+    @Column(name = "two_factor_enabled")
+    @Builder.Default
+    private boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
+
+    @Column(name = "auto_connect")
+    @Builder.Default
+    private boolean autoConnect = false;
+
     @Enumerated(EnumType.STRING)
     private UserRole role;
 

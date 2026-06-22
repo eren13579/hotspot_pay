@@ -16,6 +16,7 @@ public class UserResponse {
     private String planType;
     private String role;
     private Boolean isActive;
+    private Boolean autoConnect;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -23,7 +23,7 @@ public class PublicSettingsService {
     private final SystemSettingRepository repository;
     private final ObjectMapper objectMapper;
 
-    private static final List<String> PUBLIC_SECTIONS = List.of("general", "branding", "about");
+    private static final List<String> PUBLIC_SECTIONS = List.of("general", "branding", "about", "support");
 
     public PublicSettingsResponse getSettings() {
         List<SystemSetting> all = repository.findAllByOrderBySectionKeyAscSettingKeyAsc();
@@ -44,6 +44,9 @@ public class PublicSettingsService {
                 .aboutSubtitle(map.getOrDefault("about.subtitle", ""))
                 .aboutDescription(map.getOrDefault("about.description", ""))
                 .aboutPhotos(parsePhotoUrls(map.getOrDefault("about.photoUrls", "[]")))
+                .whatsappNumber(map.getOrDefault("support.whatsappNumber", ""))
+                .docsEnabled("true".equals(map.getOrDefault("support.docsEnabled", "true")))
+                .docsUrl(map.getOrDefault("support.docsUrl", "/docs"))
                 .updatedAt(LocalDateTime.now())
                 .build();
     }

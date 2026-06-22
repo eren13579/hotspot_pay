@@ -158,16 +158,33 @@ public class PortalServiceImpl implements PortalService {
                     .orElse(false);
         }
 
-        String message = activationPending
-                ? "✅ Paiement confirmé ! Activation WiFi en cours (quelques secondes)..."
-                : statusMessage(payment.getStatus());
+        // Vérifier si des credentials sont disponibles pour connexion manuelle
+        boolean credentialsAvailable = payment.getStatus() == PaymentStatus.PAID
+                && Boolean.TRUE.equals(payment.getManualConnect())
+                && payment.getManualUsername() != null;
+
+        String message;
+        if (credentialsAvailable) {
+            message = "✅ Paiement confirmé ! Utilisez les identifiants ci-dessous pour vous connecter au WiFi.";
+        } else if (activationPending) {
+            message = "✅ Paiement confirmé ! Activation WiFi en cours (quelques secondes)...";
+        } else {
+            message = statusMessage(payment.getStatus());
+        }
 
         PortalStatusResponse.PortalStatusResponseBuilder builder = PortalStatusResponse.builder()
                 .reference(reference)
                 .status(payment.getStatus())
                 .message(message)
-                .wifiActivated(wifiActivated && !activationPending)
-                .activationPending(activationPending);
+                .wifiActivated(wifiActivated && !activationPending && !credentialsAvailable)
+                .activationPending(activationPending)
+                .credentialsAvailable(credentialsAvailable);
+
+        // Ajouter les credentials si connexion manuelle
+        if (credentialsAvailable) {
+            builder.manualUsername(payment.getManualUsername());
+            builder.manualPassword(payment.getManualPassword());
+        }
 
         if (wifiActivated) {
             sessionRepository.findByPaymentId(payment.getPaymentId())
@@ -190,6 +207,16 @@ public class PortalServiceImpl implements PortalService {
         }
 
         return builder.build();
+    }
+
+    @Override
+    @Transactional
+    public PortalStatusResponse connectManually(String reference, String mac) {
+        // Délègue au PaymentService qui gère toute la logique
+        paymentService.connectManually(reference, mac);
+
+        // Retourner le statut mis à jour (wifiActivated pas encore vrai, activationPending)
+        return checkStatus(reference);
     }
 
     // ── Privé ──────────────────────────────────────────────────────────────

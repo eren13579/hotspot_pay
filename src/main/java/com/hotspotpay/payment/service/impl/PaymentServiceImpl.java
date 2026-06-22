@@ -29,6 +29,8 @@ import com.hotspotpay.session.repository.SessionRepository;
 import com.hotspotpay.notification.service.EmailService;
 import com.hotspotpay.subscription.service.SubscriptionService;
 import com.hotspotpay.systemsettings.repository.SystemSettingRepository;
+import com.hotspotpay.users.model.User;
+import com.hotspotpay.users.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.context.annotation.Lazy;
@@ -72,6 +74,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final EmailService        emailService;
     private final StringRedisTemplate stringRedisTemplate;
     private final SystemSettingRepository systemSettingRepository;
+    private final UserRepository userRepository;
 
     private static final int PAYMENT_TIMEOUT_MINUTES = 10;
     private static final String LOCK_PREFIX = "pay:lock:";
@@ -96,7 +99,8 @@ public class PaymentServiceImpl implements PaymentService {
             SseService sseService,
             EmailService emailService,
             StringRedisTemplate stringRedisTemplate,
-            SystemSettingRepository systemSettingRepository) {
+            SystemSettingRepository systemSettingRepository,
+            UserRepository userRepository) {
         this.paymentRepository    = paymentRepository;
         this.sessionRepository    = sessionRepository;
         this.hotspotRepository    = hotspotRepository;
@@ -107,6 +111,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.campayGateway        = campayGateway;
         this.fastApiPaymentClient = fastApiPaymentClient;
         this.fastApiTicketClient  = fastApiTicketClient;
+        this.userRepository       = userRepository;
         this.ticketRepository     = ticketRepository;
         this.subscriptionService  = subscriptionService;
         this.sseService           = sseService;
@@ -277,7 +282,8 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         // ── Phase 3 : Notifier le client IMMÉDIATEMENT via SSE ──
-        pushSse(reference, PaymentStatus.PAID, !isSubscription);
+        boolean wifiActivated = !isSubscription && !Boolean.TRUE.equals(payment.getManualConnect());
+        pushSse(reference, PaymentStatus.PAID, wifiActivated);
 
         log.info("Paiement confirmé ref={} type={} mac={}",
                 reference, isSubscription ? "Abonnement" : "Forfait WiFi",
@@ -300,21 +306,31 @@ public class PaymentServiceImpl implements PaymentService {
 
     /**
      * Active la session WiFi après paiement confirmé — Architecture FastAPI.
-     *
-     * Flux optimisé pour latence minimale :
-     *   1. Cherche un ticket DISPONIBLE (verrou SELECT FOR UPDATE) ou génère credentials
-     *   2. Crée la session en DB en PENDING_MIKROTIK
-     *   3. Appelle FastAPI (POST /api/v1/tickets/activate-direct) → crée action CREATE_USER
-     *   4. Le routeur MikroTik récupère l'action via Long Polling (< 5s avec agent)
-     *   5. Le routeur ACK → FastAPI notifie Java → session passe ACTIVE
-     *
-     * Le MAC address est OBLIGATOIRE — l'action est liée à ce MAC uniquement.
+     * <p>
+     * Vérifie d'abord le paramètre autoConnect du hotspot owner :
+     * <ul>
+     *   <li>Si autoConnect = true (ou indisponible) → crée la session + active le routeur immédiatement</li>
+     *   <li>Si autoConnect = false → stocke les credentials sur le paiement pour connexion manuelle</li>
+     * </ul>
      */
     private void activateSession(Payment payment) {
         Plan plan = planRepository.findByPlanId(payment.getPlanId())
                 .orElseThrow(() -> AppException.notFound("Forfait introuvable"));
-        hotspotRepository.findByHotspotId(payment.getHotspotId())
+        Hotspot hotspot = hotspotRepository.findByHotspotId(payment.getHotspotId())
                 .orElseThrow(() -> AppException.notFound("Hotspot introuvable"));
+
+        // ── Vérifier autoConnect du hotspot owner ──
+        boolean shouldAutoConnect = true; // par défaut : auto-connect
+        try {
+            User owner = userRepository.findByUserId(hotspot.getUserId()).orElse(null);
+            if (owner != null) {
+                shouldAutoConnect = owner.isAutoConnect();
+                log.debug("autoConnect du hotspot owner {} = {}", owner.getUserId(), shouldAutoConnect);
+            }
+        } catch (Exception e) {
+            log.warn("Impossible de lire autoConnect pour hotspot {}: {} — fallback auto-connect",
+                    payment.getHotspotId(), e.getMessage());
+        }
 
         // ── Étape 1 : Ticket ou credentials ──
         Ticket availableTicket = ticketRepository
@@ -357,6 +373,20 @@ public class PaymentServiceImpl implements PaymentService {
             log.info("Credentials générés pour hotspot={}", payment.getHotspotId());
         }
 
+        if (!shouldAutoConnect) {
+            // ── Mode manuel : stocker les credentials sans créer de session ni appeler FastAPI ──
+            payment.setManualConnect(true);
+            payment.setManualUsername(username);
+            payment.setManualPassword(password);
+            paymentRepository.save(payment);
+
+            log.info("autoConnect=OFF: credentials stockés ref={} user={} — le client devra se connecter manuellement",
+                    payment.getReference(), username);
+            return;
+        }
+
+        // ── Mode auto-connect : créer la session + activer sur le routeur (comportement actuel) ──
+
         // ── Étape 2 : Créer la session PENDING_MIKROTIK ──
         String sessionId = UUID.randomUUID().toString();
         Session session = Session.builder()
@@ -376,8 +406,6 @@ public class PaymentServiceImpl implements PaymentService {
         sessionRepository.save(session);
 
         // ── Étape 3 : Appeler FastAPI IMMÉDIATEMENT (1 seul appel, pas de retry bloquant) ──
-        // FastAPI enqueue l'action → routeur la récupère en < 5s via long polling
-        // Si FastAPI est down, le PaymentPollingJob Java + retry SSE gère le fallback
         try {
             boolean activated = fastApiTicketClient.activateGeneratedCredentials(
                     payment.getHotspotId(),
@@ -399,6 +427,87 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("❌ Erreur appel FastAPI session={}: {} — sera retrié par job",
                     sessionId, e.getMessage());
         }
+    }
+
+    /**
+     * Active manuellement la session WiFi après paiement avec auto-connect désactivé.
+     * Appelé quand le client clique "Se connecter" sur le portail captif.
+     * Crée la session + appelle FastAPI pour activer le compte sur le routeur.
+     */
+    @Override
+    @Transactional
+    public PaymentResponse connectManually(String reference, String mac) {
+        Payment payment = paymentRepository.findByReference(reference)
+                .orElseThrow(() -> AppException.notFound("Paiement introuvable"));
+
+        if (payment.getStatus() != PaymentStatus.PAID) {
+            throw AppException.badRequest("Le paiement n'est pas confirmé");
+        }
+        if (!Boolean.TRUE.equals(payment.getManualConnect())) {
+            throw AppException.badRequest("Ce paiement n'attend pas de connexion manuelle");
+        }
+
+        Hotspot hotspot = hotspotRepository.findByHotspotId(payment.getHotspotId())
+                .orElseThrow(() -> AppException.notFound("Hotspot introuvable"));
+        Plan plan = planRepository.findByPlanId(payment.getPlanId())
+                .orElseThrow(() -> AppException.notFound("Forfait introuvable"));
+
+        String username  = payment.getManualUsername();
+        String password  = payment.getManualPassword();
+        String profile   = plan.getHotspotProfile() != null ? plan.getHotspotProfile() : "default";
+        String timeLimit = formatDurationForMikroTik(plan.getDurationMinutes());
+
+        // Mettre à jour le MAC avec celui du client qui se connecte
+        if (mac != null && !mac.isBlank()) {
+            payment.setClientMac(mac.toUpperCase());
+            paymentRepository.save(payment);
+        }
+
+        // ── Créer la session PENDING_MIKROTIK ──
+        String sessionId = UUID.randomUUID().toString();
+        Session session = Session.builder()
+                .sessionId(sessionId)
+                .paymentId(payment.getPaymentId())
+                .hotspotId(payment.getHotspotId())
+                .planId(payment.getPlanId())
+                .clientPhone(payment.getClientPhone())
+                .clientMac(payment.getClientMac())
+                .mikrotikUsername(username)
+                .mikrotikPassword(password)
+                .status(SessionStatus.PENDING_MIKROTIK)
+                .activatedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusMinutes(plan.getDurationMinutes()))
+                .build();
+
+        sessionRepository.save(session);
+
+        // ── Appeler FastAPI ──
+        try {
+            fastApiTicketClient.activateGeneratedCredentials(
+                    payment.getHotspotId(),
+                    username,
+                    password,
+                    profile,
+                    timeLimit,
+                    null,
+                    payment.getClientMac(),
+                    sessionId
+            );
+        } catch (Exception e) {
+            log.error("❌ Erreur FastAPI connexion manuelle ref={}: {}", reference, e.getMessage());
+            // On ne jette pas d'exception — la session est créée, le job de retry gérera
+        }
+
+        // Nettoyer les champs manuels (utilisés une seule fois)
+        payment.setManualConnect(false);
+        paymentRepository.save(payment);
+
+        log.info("🔌 Connexion manuelle réussie: ref={} user={} session={}", reference, username, sessionId);
+
+        // Pousser l'événement SSE pour que le frontend polling détecte wifiActivated
+        pushSse(reference, PaymentStatus.PAID, true);
+
+        return toResponse(payment);
     }
 
     private String formatDurationForMikroTik(int totalMinutes) {

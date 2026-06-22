@@ -80,6 +80,7 @@ public class UserServiceImpl implements UserService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
+        if (request.getAutoConnect() != null) user.setAutoConnect(request.getAutoConnect());
         userRepository.save(user);
         log.info("Profile updated for userId={}", user.getUserId());
         return toResponse(user);
@@ -138,6 +139,7 @@ public class UserServiceImpl implements UserService {
         if (request.getCountry()  != null) user.setCountry(request.getCountry());
         if (request.getPlanType() != null) user.setPlanType(request.getPlanType());
         if (request.getIsActive() != null) user.setIsActive(request.getIsActive());
+        if (request.getAutoConnect() != null) user.setAutoConnect(request.getAutoConnect());
         userRepository.save(user);
         return toResponse(user);
     }
@@ -171,6 +173,7 @@ public class UserServiceImpl implements UserService {
                 .planType(u.getPlanType())
                 .role(u.getRole().name())
                 .isActive(u.getIsActive())
+                .autoConnect(u.isAutoConnect())
                 .createdAt(u.getCreatedAt())
                 .updatedAt(u.getUpdatedAt())
                 .build();

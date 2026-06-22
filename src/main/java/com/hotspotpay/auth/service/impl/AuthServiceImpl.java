@@ -88,6 +88,16 @@ public class AuthServiceImpl implements AuthService {
             throw AppException.unauthorized("Email ou mot de passe incorrect");
         }
 
+        // ── 2FA : retourner un token temporaire si activée ─────────────
+        if (newUser.isTwoFactorEnabled()) {
+            String tempToken = jwtService.generateTempToken(newUser);
+            log.info("2FA requise pour userId={}", newUser.getUserId());
+            return AuthResponse.builder()
+                    .requiresTwoFactor(true)
+                    .tempToken(tempToken)
+                    .build();
+        }
+
         log.info("User logged in: userId={}", newUser.getUserId());
         return buildAuthResponse(newUser);
     }

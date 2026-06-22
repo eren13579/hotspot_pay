@@ -68,6 +68,12 @@ public class SecurityConfig {
                 // ── Public — Router Callback ──────────────────────────────
                 .requestMatchers("/internal/router-callback/**").permitAll()
 
+                // ── Public — Contact (landing page) ──────────────────────
+                .requestMatchers("/contact").permitAll()
+
+                // ── Public — FAQ (lecture seule) ───────────────────────────
+                .requestMatchers(HttpMethod.GET, "/faqs").permitAll()
+
                 // ── Public — portail captif tickets ──────────────────────
                 .requestMatchers("/portal/*/tickets/**").permitAll()
 
@@ -76,6 +82,9 @@ public class SecurityConfig {
 
                 // ── Public — paramètres système (landing page) ──────────
                 .requestMatchers("/public/**").permitAll()
+
+                // ── Public — SSE système (signaux de mise à jour, pas de données sensibles) ──
+                .requestMatchers("/sse/**").permitAll()
 
                 // ── Public — Actuator health ─────────────────────────────
                 .requestMatchers("/actuator/health").permitAll()
