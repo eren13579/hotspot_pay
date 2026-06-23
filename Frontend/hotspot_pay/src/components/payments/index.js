@@ -1,0 +1,5 @@
+export { default as PaymentsHeader } from './PaymentsHeader'
+export { default as PaymentsStats } from './PaymentsStats'
+export { default as PaymentsTable } from './PaymentsTable'
+export { default as PaymentsMobileCards } from './PaymentsMobileCards'
+export { default as PaymentDetailModal } from './PaymentDetailModal'

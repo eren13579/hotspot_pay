@@ -1,0 +1,66 @@
+# =====================================================================
+# HotspotPay — .gitignore racine (monorepo)
+# =====================================================================
+
+# ── Java / Maven ──
+target/
+*.class
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# ── Python / FastAPI ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+build/
+*.egg
+.venv/
+venv/
+env/
+*.db
+*.sqlite3
+
+# ── Node / Frontend ──
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Build outputs ──
+dist/
+dist-ssr/
+*.local
+
+# ── Secrets & Environnement ──
+.env
+.env.*
+!.env.example
+!.env.prod.example
+application-prod.properties
+application-local.properties
+*.key
+*.pem
+*.cert
+
+# ── IDE & OS ──
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Logs ──
+*.log
+logs/
+
+# ── Docker ──
+.docker/

@@ -1,0 +1,100 @@
+# =====================================================================
+# HotspotPay — Backend FastAPI / Python CI
+# Techno : Python 3.12 · FastAPI 0.115 · pytest · ruff
+# Monorepo :  Backend/Fastapi/hotspot_pay/
+# =====================================================================
+name: Backend FastAPI CI
+
+on:
+  push:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'Backend/Fastapi/**'
+      - '.github/workflows/backend-fastapi.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Backend/Fastapi/**'
+      - '.github/workflows/backend-fastapi.yml'
+
+env:
+  PYTHON_VERSION: '3.12'
+  WORKING_DIR: Backend/Fastapi/hotspot_pay
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ${{ env.WORKING_DIR }}/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt ruff
+      - run: ruff check app/ --output-format=github
+
+  test:
+    name: Tests (pytest)
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ${{ env.WORKING_DIR }}/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - run: python -m pytest app/tests/ -v --tb=short
+
+  docker:
+    name: Build Docker
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend-fastapi
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.WORKING_DIR }}
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: sarif
+          output: trivy-fastapi.sarif
+          severity: HIGH,CRITICAL

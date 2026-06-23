@@ -1,0 +1,142 @@
+# ============================================================
+# HotspotPay — Docker Compose unifié
+# Lance tous les services nécessaires : PostgreSQL, Redis,
+# Backend Java (Spring Boot), Backend FastAPI
+#
+# Usage :
+#   docker-compose up -d                                  # Tout lancer
+#   docker-compose up -d postgres redis                   # DB uniquement
+#   docker-compose logs -f backend-java                   # Logs Java
+#   docker-compose down -v                                # Tout arrêter + volumes
+# ============================================================
+
+services:
+
+  # ── PostgreSQL 16 ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hotspotpay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hotspot_pay
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Teda@2003}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Script qui crée automatiquement la DB hotspot_fastapi au 1er démarrage
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hotspot_pay"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: hotspotpay-redis
+    restart: unless-stopped
+    command: sh -c 'if [ -n "$REDIS_PASSWORD" ]; then exec redis-server --requirepass "$REDIS_PASSWORD"; else exec redis-server; fi'
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "if [ -n \"$REDIS_PASSWORD\" ]; then redis-cli -a \"$REDIS_PASSWORD\" ping; else redis-cli ping; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Backend Java (Spring Boot) ───────────────────────────
+  backend-java:
+    build:
+      context: ./Backend/Java/hotspot_pay
+      dockerfile: Dockerfile
+    container_name: hotspotpay-java
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Connexion à la base de données (surcharge application.properties)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hotspot_pay
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-Teda@2003}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+      # Profil actif (dev requis pour FastAPI)
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Sécurité
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production-32chars}
+      JASYPT_KEY: ${JASYPT_KEY:-change-me-jasypt-key}
+
+      # URL du microservice FastAPI
+      # Note: fastapi.api-key est défini dans application-dev.properties,
+      # ne pas mettre FASTAPI_API_KEY ici car l'env var écrase le profil dev
+      FASTAPI_BASE_URL: http://backend-fastapi:8444
+      FASTAPI_CALLBACK_SECRET: ${FASTAPI_CALLBACK_SECRET:-change-me-callback-secret}
+
+      # Mail (valeurs par défaut pour éviter les erreurs SMTP dans l'actuator health)
+      MAIL_USERNAME: dummy
+      MAIL_PASSWORD: dummy
+
+      # Désactive le healthcheck mail (pas de SMTP en dev)
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+
+      # URL publique (utilisée pour les webhooks)
+      BASE_URL: ${BASE_URL:-http://localhost:8080}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Backend FastAPI (Python) ─────────────────────────────
+  backend-fastapi:
+    build:
+      context: ./Backend/Fastapi/hotspot_pay
+      dockerfile: Dockerfile
+    container_name: hotspotpay-fastapi
+    restart: unless-stopped
+    ports:
+      - "8444:8444"
+    environment:
+      # Le Dockerfile lit cette variable pour le port uvicorn
+      PORT: 8444
+      HOST: 0.0.0.0
+      DEBUG: "true"
+
+      # PostgreSQL (le settings.py construit DATABASE_URL automatiquement)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-Teda@2003}
+      DB_NAME: hotspot_fastapi
+
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+
+      # Clé API pour l'authentification inter-service (Java → FastAPI)
+      API_KEY: tPkv2JYxU0dniur4MnZB5qteCBJuilUNUA5VhkOEtW0=
+
+      # Callback vers Java après activation de session
+      JAVA_CALLBACK_URL: http://backend-java:8080/internal/router-callback
+      JAVA_CALLBACK_SECRET: ${FASTAPI_CALLBACK_SECRET:-change-me-callback-secret}
+
+      # CORS (séparés par des virgules)
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
