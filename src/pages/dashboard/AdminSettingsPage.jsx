@@ -4,7 +4,8 @@ import { useSelector } from 'react-redux'
 import {
   Save, Loader2, RefreshCw, Settings,
   SlidersHorizontal, Palette, Info, CreditCard,
-  Server, Globe, Shield, Bell, ChevronRight, MessageCircle, Download,
+  Server, Globe, Shield, Bell, ChevronRight, MessageCircle, Download, LifeBuoy,
+  Webhook,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -20,6 +21,8 @@ import SecuritySection from '../../components/settings/SecuritySection'
 import NotificationsSection from '../../components/settings/NotificationsSection'
 import FAQSection from '../../components/settings/FAQSection'
 import WithdrawalsSection from '../../components/settings/WithdrawalsSection'
+import SupportSection from '../../components/settings/SupportSection'
+import WebhooksSection from '../../components/settings/WebhooksSection'
 
 const SECTIONS = [
   { key: 'general',       label: 'Général',      icon: SlidersHorizontal },
@@ -31,7 +34,9 @@ const SECTIONS = [
   { key: 'security',      label: 'Sécurité',     icon: Shield },
   { key: 'notifications', label: 'Notifications', icon: Bell },
   { key: 'withdrawals',   label: 'Retraits',     icon: Download },
+  { key: 'support',       label: 'Support',      icon: LifeBuoy },
   { key: 'faq',           label: 'FAQ',          icon: MessageCircle },
+  { key: 'webhooks',      label: 'Webhooks',     icon: Webhook },
 ]
 
 const SECTION_MAP = {
@@ -44,7 +49,9 @@ const SECTION_MAP = {
   security: SecuritySection,
   notifications: NotificationsSection,
   withdrawals: WithdrawalsSection,
+  support: SupportSection,
   faq: FAQSection,
+  webhooks: WebhooksSection,
 }
 
 const SECTION_ORDER = SECTIONS.map((s) => s.key)

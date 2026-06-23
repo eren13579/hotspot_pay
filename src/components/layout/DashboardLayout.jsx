@@ -15,6 +15,7 @@ import { hotspotsApi, adminSettingsApi } from '../../api/endpoints'
 import { cn } from '../../utils/cn'
 import useSystemSse from '../../hooks/useSystemSse'
 import api from '../../api/axios'
+import { usePublicSettings, PublicSettingsProvider } from '../../context/PublicSettingsContext'
 
 // ─── Titre de page selon la route ─────────────────────────────────────
 const pageTitles = {
@@ -257,14 +258,38 @@ function NotificationBell() {
   )
 }
 
+// ─── Bannière de maintenance ─────────────────────────────────────────
+function MaintenanceBanner({ theme }) {
+  return (
+    <div className={cn(
+      'flex items-center gap-2 px-4 py-2 text-[11px] font-medium border-b',
+      'bg-amber-500/10 border-amber-500/20 text-amber-400',
+      'animate-slide-down',
+    )}>
+      <div className="relative w-4 h-4 shrink-0">
+        <svg className="w-4 h-4 animate-spin-reverse-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+      <span className="flex-1">Mode maintenance activé — les utilisateurs ne peuvent pas accéder au service.</span>
+      <span className="text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full font-bold animate-pulse-soft">ADMIN SEULEMENT</span>
+    </div>
+  )
+}
+
 // ─── Layout principal ────────────────────────────────────────────────
-export default function DashboardLayout() {
+function DashboardContent() {
   const dispatch = useDispatch()
   const sidebarOpen = useSelector((state) => state.ui.sidebarOpen)
   const theme = useSelector((state) => state.ui.theme)
   const locale = useSelector((state) => state.ui.locale)
   const { user, userId, role, isAuthenticated, logout, loadProfile } = useAuth()
   const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
+  const { settings } = usePublicSettings()
+  const maintenanceMode = settings.maintenanceMode
+  const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const pageTitle = usePageTitle()
@@ -316,6 +341,48 @@ export default function DashboardLayout() {
     }, 300)
     return () => clearTimeout(timer)
   }, [searchInput, dispatch])
+
+  // ── Mode maintenance ──
+  if (maintenanceMode && !isAdmin) {
+    return (
+      <div className={cn(
+        'flex flex-col items-center justify-center h-screen p-6 relative',
+        theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900',
+      )}>
+        {/* Bouton déconnexion en haut à droite */}
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={logout}
+            className={cn(
+              'p-2.5 rounded-xl transition-all',
+              theme === 'dark'
+                ? 'text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/20'
+                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200',
+            )}
+            title="Se déconnecter"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="max-w-md text-center space-y-4 animate-fade-in-up">
+          <div className={cn(
+            'w-16 h-16 rounded-full border flex items-center justify-center mx-auto',
+            theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200',
+          )}>
+            <svg className="w-8 h-8 text-slate-500 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight">Site en maintenance</h1>
+          <p className={cn('text-sm', theme === 'dark' ? 'text-slate-400' : 'text-slate-500')}>
+            Nous effectuons des opérations de maintenance. Revenez dans quelques instants.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const locales = {
     fr: { label: 'FR', flag: '🇫🇷' },
@@ -496,6 +563,9 @@ export default function DashboardLayout() {
           </div>
         </header>
 
+        {/* Bannière mode maintenance (admin seulement) */}
+        {maintenanceMode && isAdmin && <MaintenanceBanner theme={theme} />}
+
         {/* Page content */}
         <main className={cn(
           'flex-1 overflow-y-auto p-4 lg:p-6 transition-colors duration-200 relative',
@@ -509,5 +579,14 @@ export default function DashboardLayout() {
         </main>
       </div>
     </div>
+  )
+}
+
+// ─── Wrapper avec accès aux paramètres publics ───────────────────────
+export default function DashboardLayout() {
+  return (
+    <PublicSettingsProvider>
+      <DashboardContent />
+    </PublicSettingsProvider>
   )
 }

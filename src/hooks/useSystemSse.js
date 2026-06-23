@@ -39,18 +39,26 @@ export default function useSystemSse(handlers = {}, { enabled = true } = {}) {
       setConnected(true)
     }
 
-    // Événements nommés (settings_updated, faq_updated, etc.)
-    es.addEventListener('settings_updated', (e) => {
-      setLastEvent('settings_updated')
-      handlersRef.current.settings_updated?.(e.data ? JSON.parse(e.data) : null)
+    // Événements nommés
+    const EVENT_TYPES = [
+      'settings_updated',
+      'faq_updated',
+      'contact_updated',
+      'payment_updated',
+      'withdrawal_updated',
+      'ticket_updated',
+      'session_updated',
+      'hotspot_updated',
+    ]
+
+    EVENT_TYPES.forEach((eventType) => {
+      es.addEventListener(eventType, (e) => {
+        setLastEvent(eventType)
+        handlersRef.current[eventType]?.(e.data ? JSON.parse(e.data) : null)
+      })
     })
 
-    es.addEventListener('faq_updated', (e) => {
-      setLastEvent('faq_updated')
-      handlersRef.current.faq_updated?.(e.data ? JSON.parse(e.data) : null)
-    })
-
-    // Événement générique (fallback pour tout type)
+    // Événement générique (fallback pour tout type non listé)
     es.onmessage = (e) => {
       if (e.type && handlersRef.current[e.type]) {
         setLastEvent(e.type)
