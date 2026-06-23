@@ -5,6 +5,8 @@ import com.hotspotpay.withdrawal.dto.WithdrawalResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface WithdrawalService {
     WithdrawalResponse request(String userId, WithdrawalRequest req);
     Page<WithdrawalResponse> findAll(String userId, Pageable pageable);

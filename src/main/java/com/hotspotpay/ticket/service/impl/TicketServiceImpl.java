@@ -2,6 +2,7 @@ package com.hotspotpay.ticket.service.impl;
 
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.hotspot.repository.HotspotRepository;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.session.enumeration.SessionStatus;
 import com.hotspotpay.session.model.Session;
 import com.hotspotpay.session.repository.SessionRepository;
@@ -37,6 +38,7 @@ public class TicketServiceImpl implements TicketService {
     private final SessionRepository    sessionRepository;
     private final FastApiTicketClient   fastApiTicketClient;
     private final RouterActionService  routerActionService;
+    private final SystemSseService     systemSseService;
 
     // ── Import ────────────────────────────────────────────────────────────
 
@@ -70,6 +72,8 @@ public class TicketServiceImpl implements TicketService {
             ticketRepository.save(ticket);
             imported++;
         }
+
+        systemSseService.broadcast("ticket_updated", "imported:" + hotspotId + ":" + imported);
 
         log.info("Import tickets hotspot={}: {}/{} importés, {} doublons",
                 hotspotId, imported, request.getTickets().size(), skipped.size());
@@ -230,6 +234,8 @@ public class TicketServiceImpl implements TicketService {
                 }
             });
         }
+
+        systemSseService.broadcast("ticket_updated", "revoked:" + ticketId);
 
         log.info("Ticket révoqué: ticketId={}", ticketId);
     }

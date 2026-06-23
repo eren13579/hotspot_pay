@@ -2,6 +2,7 @@ package com.hotspotpay.systemsettings.service;
 
 import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.exception.AppException;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.systemsettings.dto.SectionResponse;
 import com.hotspotpay.systemsettings.dto.SettingItemResponse;
 import com.hotspotpay.systemsettings.dto.SettingItemUpdateRequest;
@@ -28,6 +29,7 @@ public class AdminSettingsService {
 
     private final SystemSettingRepository repository;
     private final AuditService auditService;
+    private final SystemSseService systemSseService;
 
     @Transactional(readOnly = true)
     public SystemSettingsResponse getSettings() {
@@ -112,6 +114,8 @@ public class AdminSettingsService {
 
         if (changedKeys.isEmpty()) {
             log.info("System settings save requested without secret replacement: userId={}", currentUserId());
+        } else {
+            systemSseService.broadcast("settings_updated", changedKeys);
         }
 
         return getSettings();
@@ -187,6 +191,7 @@ public class AdminSettingsService {
             case "portal" -> "Portail captif";
             case "security" -> "Sécurité";
             case "notifications" -> "Notifications";
+            case "withdrawals" -> "Retraits";
             default -> key;
         };
     }
@@ -241,6 +246,13 @@ public class AdminSettingsService {
         add(settings, "notifications.mailUsername", "notifications", "SMTP username", "Identifiant SMTP.", "text", "", false);
         add(settings, "notifications.mailPassword", "notifications", "SMTP password", "Mot de passe SMTP. Laisser vide pour conserver.", "password", "", true);
         add(settings, "notifications.mailFrom", "notifications", "Email expéditeur", "Email utilisé comme expéditeur.", "email", "no-reply@hotspotpay.cm", false);
+
+        add(settings, "withdrawals.enabled", "withdrawals", "Retraits activés", "Active ou désactive les demandes de retrait.", "switch", "true", false);
+        add(settings, "withdrawals.minAmount", "withdrawals", "Montant minimum", "Montant minimum d'un retrait en XAF.", "number", "1000", false);
+        add(settings, "withdrawals.maxAmount", "withdrawals", "Montant maximum", "Montant maximum d'un retrait en XAF.", "number", "500000", false);
+        add(settings, "withdrawals.feeFixed", "withdrawals", "Frais fixes", "Frais fixes appliqués à chaque retrait en XAF.", "number", "0", false);
+        add(settings, "withdrawals.feePercentage", "withdrawals", "Frais en %", "Pourcentage de frais sur le montant du retrait.", "number", "1.5", false);
+        add(settings, "withdrawals.methods", "withdrawals", "Méthodes disponibles", "Méthodes de retrait séparées par une virgule (orange,mtn,airtel).", "text", "orange,mtn", false);
 
         return settings;
     }

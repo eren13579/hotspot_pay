@@ -8,6 +8,9 @@ import com.hotspotpay.hotspot.repository.HotspotRepository;
 import com.hotspotpay.plan.repository.PlanRepository;
 import com.hotspotpay.router.service.FastApiDashboardClient;
 import com.hotspotpay.ticket.repository.TicketRepository;
+import com.hotspotpay.users.repository.UserRepository;
+import com.hotspotpay.withdrawal.service.WithdrawalService;
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,8 @@ public class DashboardController {
     private final HotspotRepository hotspotRepository;
     private final TicketRepository ticketRepository;
     private final PlanRepository planRepository;
+    private final UserRepository userRepository;
+    private final WithdrawalService withdrawalService;
 
     @GetMapping("/overview")
     @Operation(summary = "Stats globales : revenus, sessions, hotspots")
@@ -69,6 +74,39 @@ public class DashboardController {
             throw AppException.internalError("Erreur lors du chargement du dashboard admin (FastAPI)");
         }
         return ResponseEntity.ok(ApiResponse.okFromFastApi(result));
+    }
+
+    @GetMapping("/admin/counts")
+    @Operation(summary = "Compteurs admin : utilisateurs, hotspots, retraits en attente, tickets")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAdminCounts() {
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            throw AppException.forbidden("Accès réservé aux administrateurs");
+        }
+
+        long totalUsers = userRepository.count();
+        long totalTickets = ticketRepository.count();
+        long pendingWithdrawals = withdrawalService.countPendingWithdrawals();
+
+        // Hotspot count from FastAPI admin overview
+        long totalHotspots = 0;
+        try {
+            JsonNode adminOverview = fastApiDashboardClient.getAdminOverview(null, null);
+            if (adminOverview != null && adminOverview.has("data")) {
+                totalHotspots = adminOverview.get("data").path("total_hotspots").asLong(0);
+            }
+        } catch (Exception e) {
+            // FastAPI may be temporarily unavailable — return 0 for hotspots
+        }
+
+        return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "totalUsers", totalUsers,
+                "totalHotspots", totalHotspots,
+                "pendingWithdrawals", pendingWithdrawals,
+                "totalTickets", totalTickets
+        )));
     }
 
     @GetMapping("/counts")

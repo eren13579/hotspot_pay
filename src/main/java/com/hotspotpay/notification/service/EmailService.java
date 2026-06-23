@@ -27,4 +27,10 @@ public interface EmailService {
 
     /** Abonnement expiré → rétrogradé en BASIC */
     void sendSubscriptionExpired(String to, String planName);
+
+    /** Lien de réinitialisation de mot de passe */
+    void sendPasswordReset(String to, String fullName, String resetLink);
+
+    /** Lien de vérification d'email */
+    void sendEmailVerification(String to, String fullName, String verifyLink);
 }

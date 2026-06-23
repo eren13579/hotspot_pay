@@ -1,12 +1,12 @@
 package com.hotspotpay.auth.service.impl;
 
-import com.hotspotpay.auth.dto.AuthResponse;
-import com.hotspotpay.auth.dto.LoginRequest;
-import com.hotspotpay.auth.dto.PasswordUpdateRequest;
-import com.hotspotpay.auth.dto.RegisterRequest;
+import com.hotspotpay.auth.dto.*;
+import com.hotspotpay.auth.model.PasswordResetToken;
+import com.hotspotpay.auth.repository.PasswordResetTokenRepository;
 import com.hotspotpay.auth.service.AuthService;
 import com.hotspotpay.auth.service.JwtService;
 import com.hotspotpay.auth.service.RefreshTokenService;
+import com.hotspotpay.auth.service.TwoFactorService;
 import com.hotspotpay.notification.service.EmailService;
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.users.model.User;
@@ -15,10 +15,12 @@ import com.hotspotpay.users.role.UserRole;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import com.hotspotpay.auth.service.GoogleOAuth2Service;
 import com.hotspotpay.auth.service.GoogleOAuth2Service.GoogleUserInfo;
@@ -34,6 +36,11 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailService        emailService;
     private final GoogleOAuth2Service googleOAuth2Service;
+    private final TwoFactorService twoFactorService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Value("${app.base-url:http://localhost:8080/api/V1}")
+    private String baseUrl;
 
     /** Regex : min 8 chars, au moins 1 chiffre */
     private static final String PASSWORD_PATTERN = "^(?=.*\\d).{8,}$";
@@ -58,6 +65,15 @@ public class AuthServiceImpl implements AuthService {
         log.info("New user registered: userId={}, email={}", newUser.getUserId(), newUser.getEmail());
         emailService.sendWelcome(newUser.getEmail(), newUser.getFullName());
 
+        // Envoyer un email de vérification
+        try {
+            String verifyToken = jwtService.generateEmailVerificationToken(newUser.getEmail());
+            String verifyLink = baseUrl.replace("/api/V1", "") + "/verify-email?token=" + verifyToken;
+            emailService.sendEmailVerification(newUser.getEmail(), newUser.getFullName(), verifyLink);
+        } catch (Exception e) {
+            log.warn("Impossible d'envoyer l'email de vérification à {}: {}", newUser.getEmail(), e.getMessage());
+        }
+
         return buildAuthResponse(newUser);
     }
 
@@ -76,20 +92,36 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional()
     public AuthResponse login(LoginRequest request) {
-        User newUser = userRepository.findByEmail(request.getEmail().toLowerCase().trim())
+        User user = userRepository.findByEmail(request.getEmail().toLowerCase().trim())
                 .orElseThrow(() -> AppException.unauthorized("Email ou mot de passe incorrect"));
 
-        if (!newUser.getIsActive()) {
+        if (!user.getIsActive()) {
             throw AppException.forbidden("Compte désactivé — contactez le support");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), newUser.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn("Failed login attempt for email={}", request.getEmail());
             throw AppException.unauthorized("Email ou mot de passe incorrect");
         }
 
-        log.info("User logged in: userId={}", newUser.getUserId());
-        return buildAuthResponse(newUser);
+        log.info("User logged in: userId={}", user.getUserId());
+
+        // ── Vérification 2FA : si activée, retourner un token temporaire ──
+        if (Boolean.TRUE.equals(user.getTotpEnabled())) {
+            String twoFactorToken = jwtService.generateTwoFactorToken(user);
+            log.info("2FA requise pour userId={}", user.getUserId());
+            return AuthResponse.builder()
+                    .requiresTwoFactor(true)
+                    .tempToken(twoFactorToken)
+                    .userId(user.getUserId())
+                    .role(user.getRole().name())
+                    .planType(user.getPlanType())
+                    .tokenType("Bearer")
+                    .expiresIn(300_000L) // 5 minutes pour le token 2FA
+                    .build();
+        }
+
+        return buildAuthResponse(user);
     }
 
     @Override
@@ -177,6 +209,90 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("User logged in via Google: userId={}, email={}", user.getUserId(), user.getEmail());
         return buildAuthResponse(user);
+    }
+
+    // ─────────────── Mot de passe oublié ───────────────
+
+    @Override
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        // Ne pas révéler l'existence du compte — retour silencieux si email inconnu ou désactivé
+        userRepository.findByEmail(request.getEmail().toLowerCase().trim())
+                .filter(user -> Boolean.TRUE.equals(user.getIsActive()))
+                .ifPresent(user -> {
+
+        // Invalider les anciens tokens
+        passwordResetTokenRepository.deleteByUserId(user.getUserId());
+
+        // Générer un nouveau token
+        String token = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .userId(user.getUserId())
+                .token(token)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+
+        String resetLink = baseUrl + "/auth/reset-password?token=" + token;
+        emailService.sendPasswordReset(user.getEmail(), user.getFullName(), resetLink);
+        log.info("Email de réinitialisation envoyé à {}", user.getEmail());
+        });
+    }
+
+    // ─────────────── Réinitialisation mot de passe ─────
+
+    @Override
+    @Transactional
+    public AuthResponse resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> AppException.badRequest("Token invalide ou expiré"));
+
+        if (resetToken.isUsed()) {
+            throw AppException.badRequest("Ce token a déjà été utilisé");
+        }
+
+        if (resetToken.isExpired()) {
+            throw AppException.badRequest("Ce token a expiré — veuillez refaire une demande");
+        }
+
+        User user = userRepository.findByUserId(resetToken.getUserId())
+                .orElseThrow(() -> AppException.notFound("Utilisateur introuvable"));
+
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw AppException.forbidden("Ce compte est désactivé — contactez le support");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Marquer le token comme utilisé
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        log.info("Mot de passe réinitialisé pour userId={}", user.getUserId());
+        return buildAuthResponse(user);
+    }
+
+    // ─────────────── Vérification email ─────────────────
+
+    @Override
+    @Transactional
+    public void verifyEmail(String token) {
+        if (!jwtService.isEmailVerificationToken(token)) {
+            throw AppException.badRequest("Token de vérification invalide ou expiré");
+        }
+
+        String email = jwtService.extractEmailFromToken(token);
+        if (email == null || email.isBlank()) {
+            throw AppException.badRequest("Token invalide");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> AppException.notFound("Utilisateur introuvable"));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        log.info("Email vérifié pour userId={}, email={}", user.getUserId(), email);
     }
 
     /**

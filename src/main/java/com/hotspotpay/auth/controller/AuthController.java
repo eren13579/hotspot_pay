@@ -101,4 +101,33 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(
                 UserProfileResponse.builder().user(user).subscription(subscription).build()));
     }
+
+    // ─────────────── Mot de passe oublié ──────────────────────────────────
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Demander un email de réinitialisation de mot de passe")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        // Toujours retourner OK pour ne pas révéler si l'email existe
+        return ResponseEntity.ok(ApiResponse.ok("Si un compte existe avec cet email, un lien de réinitialisation vous a été envoyé."));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Réinitialiser le mot de passe avec un token")
+    public ResponseEntity<ApiResponse<AuthResponse>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Mot de passe réinitialisé avec succès",
+                authService.resetPassword(request)));
+    }
+
+    // ─────────────── Vérification email ───────────────────────────────────
+
+    @PostMapping("/verify-email")
+    @Operation(summary = "Vérifier une adresse email via token")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @RequestParam String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok(ApiResponse.ok("Adresse email vérifiée avec succès"));
+    }
 }

@@ -19,7 +19,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
 
-    // Recherche multi-champs avec pagination
+    // Recherche multi-champs avec pagination (tous les utilisateurs)
+    @Query("""
+        SELECT u FROM User u
+        WHERE (
+            LOWER(u.email)    LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+    """)
+    Page<User> searchAll(@Param("search") String search, Pageable pageable);
+
+    // Recherche multi-champs avec pagination (actifs uniquement)
     @Query("""
         SELECT u FROM User u
         WHERE u.isActive = true

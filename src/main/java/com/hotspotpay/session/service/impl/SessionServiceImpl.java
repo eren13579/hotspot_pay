@@ -3,6 +3,7 @@ package com.hotspotpay.session.service.impl;
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.common.util.DurationUtils;
 import com.hotspotpay.hotspot.repository.HotspotRepository;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.plan.model.Plan;
 import com.hotspotpay.plan.repository.PlanRepository;
 import com.hotspotpay.router.dto.RouterActionPayload;
@@ -39,6 +40,7 @@ public class SessionServiceImpl implements SessionService {
     private final HotspotRepository   hotspotRepository;
     private final PlanRepository      planRepository;
     private final RouterActionService routerActionService;
+    private final SystemSseService    systemSseService;
 
     @Override
     @Transactional(readOnly = true)
@@ -117,6 +119,8 @@ public class SessionServiceImpl implements SessionService {
                 removePayload,
                 session.getSessionId()
         );
+
+        systemSseService.broadcast("session_updated", "revoked:" + sessionId);
 
         log.info("Session révoquée: sessionId={} userId={} — actions KICK+REMOVE créées (exécution dans ≤10s)",
                 sessionId, userId);

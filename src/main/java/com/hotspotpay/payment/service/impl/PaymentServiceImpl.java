@@ -18,6 +18,7 @@ import com.hotspotpay.plan.model.Plan;
 import com.hotspotpay.plan.repository.PlanRepository;
 import com.hotspotpay.realtime.dto.PaymentStatusEvent;
 import com.hotspotpay.realtime.service.SseService;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.router.service.FastApiPaymentClient;
 import com.hotspotpay.router.service.FastApiTicketClient;
 import com.hotspotpay.ticket.enumeration.TicketStatus;
@@ -69,6 +70,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final TicketRepository     ticketRepository;
     private final SubscriptionService  subscriptionService;
     private final SseService          sseService;
+    private final SystemSseService    systemSseService;
     private final EmailService        emailService;
     private final StringRedisTemplate stringRedisTemplate;
     private final SystemSettingRepository systemSettingRepository;
@@ -94,6 +96,7 @@ public class PaymentServiceImpl implements PaymentService {
             TicketRepository ticketRepository,
             @Lazy SubscriptionService subscriptionService,
             SseService sseService,
+            SystemSseService systemSseService,
             EmailService emailService,
             StringRedisTemplate stringRedisTemplate,
             SystemSettingRepository systemSettingRepository) {
@@ -110,6 +113,7 @@ public class PaymentServiceImpl implements PaymentService {
         this.ticketRepository     = ticketRepository;
         this.subscriptionService  = subscriptionService;
         this.sseService           = sseService;
+        this.systemSseService     = systemSseService;
         this.emailService         = emailService;
         this.stringRedisTemplate  = stringRedisTemplate;
         this.systemSettingRepository = systemSettingRepository;
@@ -173,12 +177,14 @@ public class PaymentServiceImpl implements PaymentService {
             }
 
             paymentRepository.save(payment);
+            systemSseService.broadcast("payment_updated", "initiated:" + reference);
             log.info("Paiement initié ref={} op={} amount={}", reference,
                     request.getOperator(), payment.getAmount());
         } catch (Exception e) {
             payment.setStatus(PaymentStatus.FAILED);
             payment.setFailureReason(e.getMessage());
             paymentRepository.save(payment);
+            systemSseService.broadcast("payment_updated", "failed:" + reference);
             log.error("Échec initiation paiement ref={}: {}", reference, e.getMessage());
             // Message générique pour le client — ne pas exposer les détails techniques
             String userMessage = "Un problème est survenu. Veuillez réessayer plus tard.";
@@ -278,6 +284,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // ── Phase 3 : Notifier le client IMMÉDIATEMENT via SSE ──
         pushSse(reference, PaymentStatus.PAID, !isSubscription);
+        systemSseService.broadcast("payment_updated", "confirmed:" + reference);
 
         log.info("Paiement confirmé ref={} type={} mac={}",
                 reference, isSubscription ? "Abonnement" : "Forfait WiFi",

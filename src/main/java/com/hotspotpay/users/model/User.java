@@ -46,6 +46,17 @@ public class User {
 
     private Boolean isActive = true;
 
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
+
+    @Column(name = "totp_enabled")
+    @Builder.Default
+    private Boolean totpEnabled = false;
+
+    @Column(name = "email_verified")
+    @Builder.Default
+    private Boolean emailVerified = false;
+
     @Enumerated(EnumType.STRING)
     private UserRole role;
 

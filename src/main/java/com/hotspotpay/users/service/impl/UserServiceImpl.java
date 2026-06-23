@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserResponse> findAll(Pageable pageable) {
-        return userRepository.findAllByIsActiveTrue(pageable).map(this::toResponse);
+        return userRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<UserResponse> search(String query, Pageable pageable) {
-        return userRepository.searchActive(query, pageable).map(this::toResponse);
+        return userRepository.searchAll(query, pageable).map(this::toResponse);
     }
 
     @Override

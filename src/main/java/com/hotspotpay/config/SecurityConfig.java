@@ -74,14 +74,24 @@ public class SecurityConfig {
                 // ── Public — plans d'abonnement ──────────────────────────
                 .requestMatchers("/subscriptions/plans").permitAll()
 
+                // ── Public — Formulaire de contact page d'accueil ────────
+                .requestMatchers("/contact").permitAll()
+
+                // ── Public — FAQ (questions fréquentes) ──────────────────
+                .requestMatchers("/faqs").permitAll()
+
                 // ── Public — paramètres système (landing page) ──────────
                 .requestMatchers("/public/**").permitAll()
+
+                // ── Public — SSE système (flux temps réel) ──────────────
+                .requestMatchers("/sse/system").permitAll()
 
                 // ── Public — Actuator health ─────────────────────────────
                 .requestMatchers("/actuator/health").permitAll()
 
                 // ── Protégés — admin uniquement ──────────────────────────
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/faqs/admin/**").hasRole("ADMIN")
 
                 // ── Protégés — utilisateurs authentifiés ─────────────────
                 .anyRequest().authenticated()

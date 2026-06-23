@@ -23,5 +23,8 @@ public class PublicSettingsResponse {
     private String aboutSubtitle;
     private String aboutDescription;
     private List<String> aboutPhotos;
+    private String whatsappNumber;
+    private Boolean docsEnabled;
+    private String docsUrl;
     private LocalDateTime updatedAt;
 }
