@@ -33,6 +33,7 @@ import AdminPaymentsPage from './pages/dashboard/AdminPaymentsPage'
 import SupportPage from './pages/dashboard/SupportPage'
 import { PublicSettingsProvider } from './context/PublicSettingsContext'
 import PortalPage from './pages/portal/PortalPage'
+import ReturnFromPayment from './pages/portal/ReturnFromPayment'
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
           <Route path="/sign-in" element={<LoginPage />} />
           <Route path="/sign-up" element={<RegisterPage />} />
           <Route path="/portal/:hotspotId" element={<PortalPage />} />
+          <Route path="/payment/return" element={<ReturnFromPayment />} />
 
           {/* Onboarding protégé */}
           <Route

@@ -388,6 +388,23 @@ export default function PortalPage() {
     }
   }, [])
 
+  // ── Retour Moneroo (reference dans l'URL après paiement) ──────────────
+  useEffect(() => {
+    const ref = searchParams.get('reference')
+    if (!ref) return
+    // Attendre que le portail soit chargé (status IDLE) avant de basculer
+    if (status !== STATUS.IDLE) return
+
+    setPaymentRef(ref)
+    setStatus(STATUS.PAYING)
+    setStatusMessage('Vérification du paiement en cours...')
+
+    // Petit délai pour laisser l'UI PAYING s'afficher proprement
+    const t = setTimeout(() => startPolling(ref), 500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, searchParams])
+
   // ── Handlers ────────────────────────────────────────────────────────
 
   const handleSelectPlan = (plan) => {
@@ -417,7 +434,14 @@ export default function PortalPage() {
       })
       if (data?.success && data?.data) {
         const ref = data.data.reference
+        const checkoutUrl = data.data.checkoutUrl
         setPaymentRef(ref)
+        if (checkoutUrl) {
+          // Moneroo : rediriger vers la page de checkout externe
+          setStatusMessage('Redirection vers le service de paiement...')
+          window.location.href = checkoutUrl
+          return
+        }
         setStatusMessage(data.data.message || 'Confirmez sur votre téléphone')
         startPolling(ref)
       } else {
