@@ -58,7 +58,7 @@ public class MonerooGateway implements MoMoGateway {
                 .amount(amountLong)
                 .currency(currency)
                 .description(description)
-                .returnUrl(props.getReturnUrl())
+                .returnUrl(props.getReturnUrl() + "?reference=" + reference)
                 .metadata(Map.of("reference", reference))
                 .customer(MonerooInitRequest.Customer.builder()
                         .phone(sanitizePhone(phone))
