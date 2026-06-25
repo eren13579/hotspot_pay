@@ -1,6 +1,7 @@
 package com.hotspotpay.monitoring.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.hotspotpay.router.service.FastApiRetryHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -33,14 +34,11 @@ public class FastApiMonitoringClient {
      * Récupère les stats de monitoring des actions routeur depuis FastAPI.
      */
     public JsonNode getRouterActions(int limit) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getRouterActions", () ->
+            restClient.get()
                     .uri("/api/v1/admin/monitoring/router-actions?limit={limit}", limit)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getRouterActions error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

@@ -63,125 +63,108 @@ public class FastApiClient {
      * POST /api/v1/hotspots — Créer un hotspot.
      */
     public JsonNode createHotspot(String userId, CreateHotspotRequest request) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("user_id", userId);
-            body.put("name", request.getName());
-            if (request.getLocation() != null) body.put("location", request.getLocation());
-            body.put("mikrotik_ip", request.getMikrotikIp());
-            body.put("mikrotik_port", request.getMikrotikPort() != null ? request.getMikrotikPort() : 8728);
-            body.put("mikrotik_user", request.getMikrotikUser());
-            body.put("mikrotik_password", request.getMikrotikPassword());
-            body.put("hotspot_profile", request.getHotspotProfile() != null ? request.getHotspotProfile() : "default");
-            if (request.getRouterBrand() != null) body.put("router_brand", request.getRouterBrand());
-            if (request.getRouterType() != null) body.put("router_type", request.getRouterType());
-            if (request.getModelId() != null) body.put("model_id", request.getModelId());
-            return restClient.post()
+        Map<String, Object> body = new HashMap<>();
+        body.put("user_id", userId);
+        body.put("name", request.getName());
+        if (request.getLocation() != null) body.put("location", request.getLocation());
+        body.put("mikrotik_ip", request.getMikrotikIp());
+        body.put("mikrotik_port", request.getMikrotikPort() != null ? request.getMikrotikPort() : 8728);
+        body.put("mikrotik_user", request.getMikrotikUser());
+        body.put("mikrotik_password", request.getMikrotikPassword());
+        body.put("hotspot_profile", request.getHotspotProfile() != null ? request.getHotspotProfile() : "default");
+        if (request.getRouterBrand() != null) body.put("router_brand", request.getRouterBrand());
+        if (request.getRouterType() != null) body.put("router_type", request.getRouterType());
+        if (request.getModelId() != null) body.put("model_id", request.getModelId());
+        return FastApiRetryHelper.retry("createHotspot", () ->
+            restClient.post()
                     .uri("/api/v1/hotspots?user_id={userId}", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI createHotspot error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * GET /api/v1/hotspots?user_id= — Lister les hotspots paginés.
      */
     public JsonNode listHotspots(String userId, int skip, int limit) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listHotspots", () ->
+            restClient.get()
                     .uri(b -> b.path("/api/v1/hotspots")
                             .queryParam("user_id", userId)
                             .queryParam("skip", skip)
                             .queryParam("limit", limit)
                             .build())
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listHotspots error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * GET /api/v1/hotspots/public/{hotspotId} — Infos publiques (portail captif).
      */
     public JsonNode getPublicHotspot(String hotspotId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPublicHotspot", () ->
+            restClient.get()
                     .uri("/api/v1/hotspots/public/{hotspotId}", hotspotId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPublicHotspot error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * GET /api/v1/hotspots/all?skip=&limit= — Lister TOUS les hotspots (admin).
      */
     public JsonNode listAllHotspots(int skip, int limit) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listAllHotspots", () ->
+            restClient.get()
                     .uri(b -> b.path("/api/v1/hotspots/all")
                             .queryParam("skip", skip)
                             .queryParam("limit", limit)
+                            .queryParam("admin_override", true)
                             .build())
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listAllHotspots error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * GET /api/v1/hotspots/{hotspotId}?user_id=&admin_override= — Détail d'un hotspot.
      */
     public JsonNode getHotspot(String userId, String hotspotId, boolean adminOverride) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getHotspot", () ->
+            restClient.get()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}")
                             .queryParam("user_id", userId)
                             .queryParam("admin_override", adminOverride)
                             .build(hotspotId))
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getHotspot error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * PUT /api/v1/hotspots/{hotspotId}?user_id= — Modifier un hotspot.
      */
     public JsonNode updateHotspot(String userId, String hotspotId, UpdateHotspotRequest request) {
-        try {
-            return restClient.put()
+        return FastApiRetryHelper.retry("updateHotspot", () ->
+            restClient.put()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}")
                             .queryParam("user_id", userId)
                             .build(hotspotId))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI updateHotspot error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
      * DELETE /api/v1/hotspots/{hotspotId}?user_id=&admin_override= — Supprimer un hotspot.
      */
     public boolean deleteHotspot(String userId, String hotspotId, boolean adminOverride) {
-        try {
+        return FastApiRetryHelper.retryBool("deleteHotspot", () -> {
             restClient.delete()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}")
                             .queryParam("user_id", userId)
@@ -190,27 +173,21 @@ public class FastApiClient {
                     .retrieve()
                     .toBodilessEntity();
             return true;
-        } catch (RestClientException e) {
-            log.error("FastAPI deleteHotspot error: {}", e.getMessage());
-            return false;
-        }
+        });
     }
 
     /**
      * POST /api/v1/hotspots/{hotspotId}/test?user_id= — Tester connexion (statut Pull).
      */
     public JsonNode testConnection(String userId, String hotspotId) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("testConnection", () ->
+            restClient.post()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}/test")
                             .queryParam("user_id", userId)
                             .build(hotspotId))
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI testConnection error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
@@ -218,32 +195,26 @@ public class FastApiClient {
      * Générer un token + script MikroTik.
      */
     public RouterTokenResponse generateRouterToken(String userId, String hotspotId) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("generateRouterToken", () ->
+            restClient.post()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}/generate-token")
                             .queryParam("user_id", userId)
                             .build(hotspotId))
                     .retrieve()
-                    .body(RouterTokenResponse.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI generateToken error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(RouterTokenResponse.class)
+        );
     }
 
     /**
      * GET /api/v1/hotspots/{hotspotId}/plans/active — Forfaits actifs publics (portail captif).
      */
     public JsonNode getPublicActivePlans(String hotspotId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPublicActivePlans", () ->
+            restClient.get()
                     .uri("/api/v1/hotspots/{hotspotId}/plans/active", hotspotId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPublicActivePlans error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     /**
@@ -251,19 +222,16 @@ public class FastApiClient {
      * Télécharger le script routeur pré-configuré (retourne le contenu texte).
      */
     public String downloadRouterScript(String hotspotId, String token, String brand, String format) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("downloadRouterScript", () ->
+            restClient.get()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}/download-script")
                             .queryParam("token", token)
                             .queryParam("brand", brand)
                             .queryParam("format", format)
                             .build(hotspotId))
                     .retrieve()
-                    .body(String.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI downloadScript error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(String.class)
+        );
     }
 
     /**
@@ -271,7 +239,7 @@ public class FastApiClient {
      * Révoquer le token routeur.
      */
     public boolean revokeRouterToken(String userId, String hotspotId) {
-        try {
+        return FastApiRetryHelper.retryBool("revokeRouterToken", () -> {
             restClient.delete()
                     .uri(b -> b.path("/api/v1/hotspots/{hotspotId}/router-token")
                             .queryParam("user_id", userId)
@@ -279,9 +247,6 @@ public class FastApiClient {
                     .retrieve()
                     .toBodilessEntity();
             return true;
-        } catch (RestClientException e) {
-            log.error("FastAPI revokeToken error hotspotId={}: {}", hotspotId, e.getMessage());
-            return false;
-        }
+        });
     }
 }

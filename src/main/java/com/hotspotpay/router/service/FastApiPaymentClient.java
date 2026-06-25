@@ -34,115 +34,81 @@ public class FastApiPaymentClient {
 
     public JsonNode initiatePayment(String userId, String hotspotId, String planId,
                                     String clientPhone, String clientMac, String operator, String amount) {
-        try {
-            Map<String, Object> body = new java.util.HashMap<>();
-            body.put("hotspot_id", hotspotId);
-            body.put("plan_id", planId);
-            body.put("client_phone", clientPhone);
-            if (clientMac != null) body.put("client_mac", clientMac);
-            body.put("operator", operator);
-            body.put("amount", amount);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("hotspot_id", hotspotId);
+        body.put("plan_id", planId);
+        body.put("client_phone", clientPhone);
+        if (clientMac != null) body.put("client_mac", clientMac);
+        body.put("operator", operator);
+        body.put("amount", amount);
 
-            return restClient.post()
+        return FastApiRetryHelper.retry("initiatePayment", () ->
+            restClient.post()
                     .uri("/api/v1/payments/initiate")
                     .header("user-id", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI initiatePayment error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode listPaymentsByHotspot(String userId, String hotspotId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listPaymentsByHotspot", () ->
+            restClient.get()
                     .uri("/api/v1/payments/hotspot/{hotspotId}", hotspotId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listPaymentsByHotspot error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode getPayment(String userId, String paymentId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPayment", () ->
+            restClient.get()
                     .uri("/api/v1/payments/{paymentId}", paymentId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPayment error paymentId={}: {}", paymentId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
-    /**
-     * Valide hotspot + plan auprès de FastAPI (source de vérité).
-     * Retourne les infos du plan (price, currency, duration_minutes) si valide.
-     */
     public JsonNode validateHotspotPlan(String hotspotId, String planId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("validateHotspotPlan", () ->
+            restClient.get()
                     .uri("/api/v1/payments/validate-hotspot-plan/{hotspotId}/{planId}",
                             hotspotId, planId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI validateHotspotPlan error hotspotId={} planId={}: {}",
-                    hotspotId, planId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode processWebhook(String operator, Map<String, Object> payload) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("processWebhook", () ->
+            restClient.post()
                     .uri("/api/v1/payments/webhook/{operator}", operator)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI processWebhook error operator={}: {}", operator, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
-    /**
-     * Récupère le prix d'un plan d'abonnement depuis FastAPI.
-     * Utilisé par PaymentServiceImpl pour déterminer le montant des abonnements.
-     */
     public JsonNode getPlanPrice(String planName) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPlanPrice", () ->
+            restClient.get()
                     .uri("/api/v1/admin/subscriptions/plans/{planName}", planName)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPlanPrice error plan={}: {}", planName, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
-    /**
-     * Rembourse un paiement — délègue à FastAPI.
-     * La logique de remboursement (Moneroo/CamPay) est côté FastAPI.
-     */
     public JsonNode refundPayment(String paymentId) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("refundPayment", () ->
+            restClient.post()
                     .uri("/api/v1/payments/{paymentId}/refund", paymentId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI refundPayment error paymentId={}: {}", paymentId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

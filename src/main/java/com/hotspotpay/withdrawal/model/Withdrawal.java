@@ -13,11 +13,13 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "withdrawals")
-@AllArgsConstructor @NoArgsConstructor @Builder @Data
+@AllArgsConstructor @NoArgsConstructor @Builder @Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class Withdrawal {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 

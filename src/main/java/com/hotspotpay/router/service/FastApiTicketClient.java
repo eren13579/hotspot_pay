@@ -68,17 +68,17 @@ public class FastApiTicketClient {
     public boolean activateGeneratedCredentials(String hotspotId, String username, String password,
                                                  String profile, String timeLimit, String dataLimit,
                                                  String macAddress, String sessionId) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("hotspot_id", hotspotId);
-            body.put("username", username);
-            body.put("password", password);
-            body.put("profile", profile != null ? profile : "default");
-            body.put("time_limit", timeLimit != null ? timeLimit : "");
-            body.put("data_limit", dataLimit != null ? dataLimit : "");
-            body.put("comment", "HP:" + sessionId);
-            body.put("mac_address", macAddress != null ? macAddress : "");
+        Map<String, Object> body = new HashMap<>();
+        body.put("hotspot_id", hotspotId);
+        body.put("username", username);
+        body.put("password", password);
+        body.put("profile", profile != null ? profile : "default");
+        body.put("time_limit", timeLimit != null ? timeLimit : "");
+        body.put("data_limit", dataLimit != null ? dataLimit : "");
+        body.put("comment", "HP:" + sessionId);
+        body.put("mac_address", macAddress != null ? macAddress : "");
 
+        return FastApiRetryHelper.retryBool("activateGeneratedCredentials", () -> {
             Map<String, Object> response = restClient.post()
                     .uri("/api/v1/tickets/activate-direct")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -94,11 +94,7 @@ public class FastApiTicketClient {
 
             log.warn("FastAPI: Réponse inattendue pour activation directe: {}", response);
             return false;
-        } catch (RestClientException e) {
-            log.error("FastAPI: Erreur activation directe user={} hotspot={}: {}",
-                    username, hotspotId, e.getMessage());
-            return false;
-        }
+        });
     }
 
     /**
@@ -107,16 +103,16 @@ public class FastApiTicketClient {
     private boolean activateTicketDirect(String hotspotId, String username, String password,
                                          String profile, String timeLimit, String dataLimit,
                                          String comment) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("hotspot_id", hotspotId);
-            body.put("username", username);
-            body.put("password", password);
-            body.put("profile", profile != null ? profile : "default");
-            body.put("time_limit", timeLimit != null ? timeLimit : "");
-            body.put("data_limit", dataLimit != null ? dataLimit : "");
-            body.put("comment", comment != null ? comment : "");
+        Map<String, Object> body = new HashMap<>();
+        body.put("hotspot_id", hotspotId);
+        body.put("username", username);
+        body.put("password", password);
+        body.put("profile", profile != null ? profile : "default");
+        body.put("time_limit", timeLimit != null ? timeLimit : "");
+        body.put("data_limit", dataLimit != null ? dataLimit : "");
+        body.put("comment", comment != null ? comment : "");
 
+        return FastApiRetryHelper.retryBool("activateTicketDirect", () -> {
             Map<String, Object> response = restClient.post()
                     .uri("/api/v1/tickets/activate")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -132,10 +128,6 @@ public class FastApiTicketClient {
 
             log.warn("FastAPI: Réponse inattendue pour activation ticket: {}", response);
             return false;
-        } catch (RestClientException e) {
-            log.error("FastAPI: Erreur activation ticket user={} hotspot={}: {}",
-                    username, hotspotId, e.getMessage());
-            return false;
-        }
+        });
     }
 }

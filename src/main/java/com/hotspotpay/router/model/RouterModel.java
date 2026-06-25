@@ -18,12 +18,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
+@Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = "brand")
 @EntityListeners(AuditingEntityListener.class)
 public class RouterModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 

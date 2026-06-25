@@ -2,10 +2,7 @@ package com.hotspotpay.users.model;
 
 import com.hotspotpay.users.role.UserRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,12 +15,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
+@Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"password", "totpSecret"})
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 

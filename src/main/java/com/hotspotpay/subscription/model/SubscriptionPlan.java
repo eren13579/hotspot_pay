@@ -18,11 +18,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
+@Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class SubscriptionPlan {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 

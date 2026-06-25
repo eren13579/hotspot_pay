@@ -33,79 +33,56 @@ public class FastApiSubscriptionClient {
     }
 
     public JsonNode getCurrent(String userId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getCurrent", () ->
+            restClient.get()
                     .uri("/api/v1/subscriptions/me?user_id={userId}", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getCurrentSubscription error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode create(String userId, String planName, int durationMonths, String currency) {
-        try {
-            Map<String, Object> body = new java.util.HashMap<>();
-            body.put("plan_name", planName);
-            body.put("duration_months", durationMonths);
-            body.put("currency", currency);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("plan_name", planName);
+        body.put("duration_months", durationMonths);
+        body.put("currency", currency);
 
-            return restClient.post()
+        return FastApiRetryHelper.retry("create", () ->
+            restClient.post()
                     .uri("/api/v1/subscriptions?user_id={userId}", userId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI createSubscription error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode listPlans() {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listPlans", () ->
+            restClient.get()
                     .uri("/api/v1/subscriptions/plans")
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listSubscriptionPlans error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
-    /**
-     * Récupère un plan d'abonnement par son nom (standard, pro, premium).
-     * Utilise l'endpoint admin (read-only) qui ne nécessite pas de user-id.
-     */
     public JsonNode getPlanByPlanName(String planName) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPlanByPlanName", () ->
+            restClient.get()
                     .uri("/api/v1/admin/subscriptions/plans/{planName}", planName)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPlanByPlanName error plan={}: {}", planName, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
-    /**
-     * Met à jour un plan d'abonnement (prix, avantages).
-     * Réservé aux administrateurs.
-     */
     public JsonNode updatePlan(String planName, Map<String, Object> updates) {
-        try {
-            return restClient.patch()
+        return FastApiRetryHelper.retry("updatePlan", () ->
+            restClient.patch()
                     .uri("/api/v1/admin/subscriptions/plans/{planName}", planName)
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(updates)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI updatePlan error plan={}: {}", planName, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

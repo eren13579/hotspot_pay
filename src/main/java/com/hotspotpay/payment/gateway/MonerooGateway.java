@@ -88,10 +88,14 @@ public class MonerooGateway implements MoMoGateway {
             }
 
             String monerooId = resp.getData().getId();
+            String checkoutUrl = resp.getData().getCheckoutUrl();
 
-            this.lastCheckoutUrl = resp.getData().getCheckoutUrl();
-            log.info("[Moneroo] Paiement initialisé — id={}, checkoutUrl={}", monerooId, lastCheckoutUrl);
-            return monerooId;
+            this.lastCheckoutUrl = checkoutUrl;
+            log.info("[Moneroo] Paiement initialisé — id={}, checkoutUrl={}", monerooId, checkoutUrl);
+
+            // IMPORTANT : PaymentServiceImpl.initiate() parse "gatewayTxId|checkoutUrl"
+            // pour stocker le checkout_url en DB et le renvoyer au client.
+            return monerooId + "|" + (checkoutUrl != null ? checkoutUrl : "");
 
         } catch (WebClientResponseException e) {
             log.error("[Moneroo] HTTP {} : {}", e.getStatusCode(), e.getResponseBodyAsString());

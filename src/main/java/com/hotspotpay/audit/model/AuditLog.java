@@ -7,10 +7,12 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "audit_logs")
-@AllArgsConstructor @NoArgsConstructor @Builder @Data
+@AllArgsConstructor @NoArgsConstructor @Builder @Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class AuditLog {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
