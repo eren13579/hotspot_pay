@@ -195,23 +195,12 @@ async def update_plan(
     if not plan or plan.hotspot_id != hotspot_id:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    # Apply only the fields that were provided (not None)
-    update_fields = {
-        "name": request.name,
-        "description": request.description,
-        "duration_minutes": request.duration_minutes,
-        "price": request.price,
-        "currency": request.currency,
-        "download_speed_kbps": request.download_speed_kbps,
-        "upload_speed_kbps": request.upload_speed_kbps,
-        "data_limit_mb": request.data_limit_mb,
-        "display_order": request.display_order,
-        "hotspot_profile": request.hotspot_profile,
-        "is_active": request.is_active,
-    }
+    # Apply only the fields explicitly provided in the JSON body
+    # (uses model_fields_set to distinguish "not provided" from "explicitly null")
     changed = False
-    for field, value in update_fields.items():
-        if value is not None:
+    for field in request.model_fields_set:
+        value = getattr(request, field)
+        if hasattr(plan, field):
             setattr(plan, field, value)
             changed = True
 
