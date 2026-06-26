@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import LeftPanel from "../../components/auth/LeftPanel";
 import AuthLoader from "../../components/loader/AuthLoader";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { register, loading, error: authError, fieldErrors, clearError } = useAuth();
+  const { register, loading, error: authError, fieldErrors, clearError, google } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -44,6 +44,61 @@ function RegisterPage() {
 
   const handleLogin = () => navigate("/sign-in");
   const togglePassword = () => setShowPassword(!showPassword);
+
+  // ── Google OAuth2 (popup — pas de FedCM) ──────────────────────────────────
+  const [googleError, setGoogleError] = useState("");
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const handleGoogle = async (accessToken, userInfo) => {
+    if (!accessToken) return;
+    setGoogleError("");
+    await google({
+      idToken: accessToken,
+      email: userInfo.email,
+      name: userInfo.name,
+      googleId: userInfo.sub,
+      picture: userInfo.picture,
+    });
+  };
+
+  const handleGoogleClick = useCallback(() => {
+    if (!window.google?.accounts?.oauth2) {
+      setGoogleError("Chargement de Google... réessayez dans un instant");
+      return;
+    }
+
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: "openid profile email",
+      callback: (tokenResponse) => {
+        if (tokenResponse.access_token) {
+          fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          })
+            .then((res) => res.json())
+            .then((userInfo) => {
+              const { sub, email, name, picture } = userInfo;
+              if (!sub || !email) {
+                setGoogleError("Impossible de récupérer vos informations Google");
+                return;
+              }
+              handleGoogle(tokenResponse.access_token, { sub, email, name, picture });
+            })
+            .catch(() => {
+              setGoogleError("Erreur de communication avec Google");
+            });
+        }
+      },
+      error_callback: (error) => {
+        if (error.type !== "popup_closed") {
+          console.error("Google OAuth error:", error);
+          setGoogleError("Erreur de connexion Google");
+        }
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: "select_account" });
+  }, []);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-5 h-screen w-screen bg-slate-950 overflow-hidden select-none">
@@ -196,8 +251,15 @@ function RegisterPage() {
               <div className="flex-1 h-px bg-slate-800" />
             </div>
 
+            {googleError && (
+              <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-lg text-center border border-red-500/20">
+                {googleError}
+              </div>
+            )}
+
             <button
               type="button"
+              onClick={handleGoogleClick}
               className="h-11 rounded-lg flex justify-center items-center gap-2.5 bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 text-sm transition-colors"
             >
               <svg width="16" viewBox="0 0 512 512">

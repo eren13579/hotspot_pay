@@ -22,6 +22,30 @@ function formatDuration(minutes) {
   return `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}min` : ''}`
 }
 
+/* ── Récupération du portail d'origine ────────────────────────────────── */
+
+function getPortalReturn() {
+  try {
+    const raw = localStorage.getItem('portal_return')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function PortalReturnLink() {
+  const saved = getPortalReturn()
+  const href = saved?.hotspotId
+    ? `/portal/${saved.hotspotId}${saved.mac ? '?mac=' + saved.mac : ''}`
+    : '/portal'
+
+  return (
+    <Link to={href}
+      className="text-[#6B6258] text-xs underline hover:text-[#F5F0EB] transition-colors"
+    >
+      Retour au portail WiFi
+    </Link>
+  )
+}
+
 /* ── Sous-composants ─────────────────────────────────────────────────── */
 
 function CheckingScreen() {
@@ -141,11 +165,7 @@ function ConnectedScreen({ session, credentials }) {
         </div>
       )}
 
-      <Link to="/portal" onClick={(e) => { e.preventDefault(); window.close() }}
-        className="text-[#6B6258] text-xs underline hover:text-[#F5F0EB] transition-colors"
-      >
-        Fermer cette page
-      </Link>
+      <PortalReturnLink />
     </motion.div>
   )
 }
@@ -398,9 +418,12 @@ export default function ReturnFromPayment() {
   }
 
   const handleRetry = () => {
-    const portalUrl = credentials?.hotspotName
-      ? window.location.origin + '/portal'
-      : '/'
+    const saved = getPortalReturn()
+    const portalUrl = saved?.hotspotId
+      ? window.location.origin + '/portal/' + saved.hotspotId + (saved.mac ? '?mac=' + saved.mac : '')
+      : credentials?.hotspotName
+        ? window.location.origin + '/portal'
+        : '/'
     window.location.href = portalUrl
   }
 

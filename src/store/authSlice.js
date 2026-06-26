@@ -177,6 +177,36 @@ const authSlice = createSlice({
         state.loading = false
         state.error = action.payload
       })
+      // -- GOOGLE LOGIN --
+      .addCase(googleLogin.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+        state.requiresTwoFactor = false
+        state.tempToken = null
+        state.userId = action.payload.data.userId
+        state.role = action.payload.data.role
+        state.accessToken = action.payload.data.accessToken
+        state.refreshToken = action.payload.data.refreshToken
+        state.isAuthenticated = true
+        state.user = {
+          userId: action.payload.data.userId,
+          role: action.payload.data.role,
+          planType: action.payload.data.planType,
+          fullName: action.payload.data.fullName || null,
+        }
+        localStorage.setItem('accessToken', action.payload.data.accessToken)
+        if (action.payload.data.refreshToken) {
+          localStorage.setItem('refreshToken', action.payload.data.refreshToken)
+        }
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
       // -- 2FA LOGIN (deuxième facteur) --
       .addCase(twoFactorLogin.pending, (state) => {
         state.loading = true

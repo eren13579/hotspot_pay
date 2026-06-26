@@ -353,6 +353,15 @@ export default function PortalPage() {
 
   // ── Chargement initial ──────────────────────────────────────────────
 
+  // Sauvegarde du hotspotId + MAC pour le retour après paiement
+  useEffect(() => {
+    if (hotspotId) {
+      try {
+        localStorage.setItem('portal_return', JSON.stringify({ hotspotId, mac: mac || '' }))
+      } catch { /* silencieux */ }
+    }
+  }, [hotspotId, mac])
+
   // Met à jour le titre de la page
   useEffect(() => {
     document.title = hotspot?.hotspotName
