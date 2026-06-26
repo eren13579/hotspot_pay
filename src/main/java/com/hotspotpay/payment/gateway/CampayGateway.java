@@ -2,6 +2,7 @@ package com.hotspotpay.payment.gateway;
 
 import com.hotspotpay.integration.campay.*;
 import com.hotspotpay.payment.enumeration.PaymentOperator;
+import com.hotspotpay.systemsettings.service.SettingsReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -24,9 +25,11 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * Auth :
  *   Method 1 (priorité) : Token permanent depuis APP KEYS du dashboard
- *                         → campay.permanent-token=xxx
  *   Method 2 (fallback)  : POST /api/token/ avec username/password
- *                         → campay.username=xxx, campay.password=xxx
+ *
+ * ⚠ Les paramètres (baseUrl, redirectUrl, tokens, etc.) sont lus depuis la BD
+ *    (system_settings) avec fallback sur les propriétés Spring/.env.
+ *    L'administrateur peut donc les modifier depuis l'UI sans redémarrer.
  */
 @Slf4j
 @Component
@@ -35,6 +38,7 @@ public class CampayGateway implements MoMoGateway {
 
     private final WebClient        webClient;
     private final CampayProperties props;
+    private final SettingsReader   settings;
 
     // Cache du token temporaire (Method 2 uniquement)
     private final AtomicReference<String> cachedToken = new AtomicReference<>();
@@ -65,13 +69,13 @@ public class CampayGateway implements MoMoGateway {
                 "from",               formattedPhone,
                 "description",        description,
                 "external_reference", reference,        // notre référence — retournée dans le webhook
-                "redirect_url",       props.getRedirectUrl(),
-                "failure_redirect_url", props.getFailureRedirectUrl()
+                "redirect_url",       settings.get("payments.campay.redirectUrl", props::getRedirectUrl),
+                "failure_redirect_url", settings.get("payments.campay.failureRedirectUrl", props::getFailureRedirectUrl)
         );
 
         try {
             CampayCollectResponse resp = webClient.post()
-                    .uri(props.getBaseUrl() + "/api/collect/")
+                    .uri(settings.get("payments.campay.baseUrl", props::getBaseUrl) + "/api/collect/")
                     .header("Authorization", "Token " + getToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
@@ -103,7 +107,7 @@ public class CampayGateway implements MoMoGateway {
         log.debug("[Campay] Vérification statut ref={}", transactionId);
         try {
             CampayTransactionResponse tx = webClient.get()
-                    .uri(props.getBaseUrl() + "/api/transaction/" + transactionId + "/")
+                    .uri(settings.get("payments.campay.baseUrl", props::getBaseUrl) + "/api/transaction/" + transactionId + "/")
                     .header("Authorization", "Token " + getToken())
                     .retrieve()
                     .bodyToMono(CampayTransactionResponse.class)
@@ -146,19 +150,28 @@ public class CampayGateway implements MoMoGateway {
      *                        avec cache + vérification expiration
      */
     private String getToken() {
-        // Method 1 : Token permanent → aucun cache nécessaire
+        // Method 1 : Token permanent → priorité BD, fallback Spring props
+        String dbPermToken = settings.get("payments.campay.permanentToken", "");
+        if (!dbPermToken.isBlank()) {
+            return dbPermToken;
+        }
         if (props.hasPermanentToken()) {
             return props.getPermanentToken();
         }
 
-        if (!props.hasCredentials()) {
+        // Method 2 : Token temporaire — vérifier credentials dans BD puis Spring props
+        String dbUsername = settings.get("payments.campay.username", "");
+        String dbPassword = settings.get("payments.campay.password", "");
+        boolean hasDbCreds = !dbUsername.isBlank() && !dbPassword.isBlank();
+
+        if (!hasDbCreds && !props.hasCredentials()) {
             throw new RuntimeException(
                     "[Campay] Aucune configuration d'auth trouvée. " +
                             "Définir campay.permanent-token OU campay.username + campay.password"
             );
         }
 
-        // Method 2 : Token temporaire avec gestion expiration
+        // Cache du token temporaire
         String tok = cachedToken.get();
         if (tok != null && System.currentTimeMillis() < tokenExpiresAt) {
             return tok;
@@ -178,14 +191,18 @@ public class CampayGateway implements MoMoGateway {
             return tok;
         }
 
+        String baseUrl = settings.get("payments.campay.baseUrl", props::getBaseUrl);
+        String username = settings.get("payments.campay.username", props::getUsername);
+        String password = settings.get("payments.campay.password", props::getPassword);
+
         log.debug("[Campay] Obtention d'un token temporaire...");
         try {
             CampayTokenResponse resp = webClient.post()
-                    .uri(props.getBaseUrl() + "/api/token/")
+                    .uri(baseUrl + "/api/token/")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of(
-                            "username", props.getUsername(),
-                            "password", props.getPassword()
+                            "username", username,
+                            "password", password
                     ))
                     .retrieve()
                     .bodyToMono(CampayTokenResponse.class)

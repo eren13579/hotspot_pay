@@ -165,12 +165,15 @@ public class PaymentServiceImpl implements PaymentService {
                     request.getPhone(), payment.getAmount(),
                     payment.getCurrency(), reference, payment.getDescription());
 
-            // Moneroo → "monerooId|checkoutUrl" | Campay → "campayRef|ussdCode"
+            // Moneroo → "monerooId|checkoutUrl" | Campay → pas de pipe, juste la référence
+            // ⚠ L'opérateur peut être MTN_MOMO/ORANGE_MONEY routé via Moneroo (agrégateur)
+            //    donc on vérifie le format du résultat, pas l'opérateur.
             if (rawResult != null && rawResult.contains("|")) {
                 String[] parts = rawResult.split("\\|", 2);
                 payment.setGatewayTxId(parts[0]);
-                if (request.getOperator() == PaymentOperator.MONEROO && parts.length > 1) {
-                    payment.setCheckoutUrl(parts[1].isBlank() ? null : parts[1]);
+                // parts[1] = checkoutUrl (Moneroo) — toujours http(s)://
+                if (parts.length > 1 && parts[1] != null && !parts[1].isBlank() && parts[1].startsWith("http")) {
+                    payment.setCheckoutUrl(parts[1]);
                 }
             } else {
                 payment.setGatewayTxId(rawResult);

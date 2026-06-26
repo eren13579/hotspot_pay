@@ -29,43 +29,46 @@ public class GoogleOAuth2Service {
     private String expectedIssuer;
 
     /**
-     * Valide un Google ID token JWT côté serveur.
+     * Valide un token Google qui peut être :
+     * <ul>
+     *   <li>Un ID token JWT (Google Identity Services — id_token)</li>
+     *   <li>Un access token OAuth2 (popup — vérifié via l'API UserInfo)</li>
+     * </ul>
      *
-     * Google signe ses tokens avec RS256. La vérification complète nécessite de
-     * télécharger les clés publiques de Google (https://www.googleapis.com/oauth2/v3/certs)
-     * mais pour simplifier, on utilise l'endpoint /tokeninfo qui fait cette vérification
-     * pour nous. C'est safe car c'est un appel GET en lecture seule.
-     *
-     * En production à fort trafic, préférer la vérification locale des signatures
-     * via les JWKS de Google (bibliothèque google-api-client).
-     *
-     * @param idToken le JWT reçu du frontend
-     * @return Map contenant les claims (sub, email, name, picture, etc.)
+     * @param token le JWT ou access_token reçu du frontend
+     * @return GoogleUserInfo contenant sub, email, name, picture
      * @throws AppException si le token est invalide, expiré ou falsifié
      */
-    public GoogleUserInfo verifyIdToken(String idToken) {
+    public GoogleUserInfo verifyIdToken(String token) {
         if (clientId == null || clientId.isBlank()) {
             throw AppException.internalError("Google OAuth2 n'est pas configuré — définir GOOGLE_CLIENT_ID");
         }
 
-        // ── 1. Parser basiquement le JWT (sans vérifier la signature) ──────
-        //    pour extraire les claims et les vérifier nous-mêmes.
-        Map<String, Object> claims;
+        // ── Essai 1 : Parser comme un JWT (ID token Google) ──────────────
         try {
-            var signedJWT = (SignedJWT) JWTParser.parse(idToken);
-            claims = signedJWT.getJWTClaimsSet().getClaims();
+            return verifyJwtToken(token);
         } catch (ParseException e) {
-            log.warn("Google ID token malformed: {}", e.getMessage());
-            throw AppException.unauthorized("Token Google invalide — format incorrect");
+            log.debug("Token Google n'est pas un JWT — tentative en tant qu'access_token");
         }
 
-        String issuer = (String) claims.get("iss");
-        String audience = (String) claims.get("aud");
-        String subject = (String) claims.get("sub");
-        String email = (String) claims.get("email");
-        Object expObj  = claims.get("exp");
+        // ── Essai 2 : Valider comme un access token OAuth2 ──────────────
+        return verifyAccessToken(token);
+    }
 
-        // ── 2. Vérifications essentielles ──────────────────────────────────
+    /**
+     * Vérifie un ID token JWT signé par Google (flux GIS standard).
+     */
+    private GoogleUserInfo verifyJwtToken(String idToken) throws ParseException {
+        var signedJWT = (SignedJWT) JWTParser.parse(idToken);
+        Map<String, Object> claims = signedJWT.getJWTClaimsSet().getClaims();
+
+        String issuer  = (String) claims.get("iss");
+        String audience = (String) claims.get("aud");
+        String subject  = (String) claims.get("sub");
+        String email    = (String) claims.get("email");
+        Object expObj   = claims.get("exp");
+
+        // ── Vérifications ──────────────────────────────────────────────
         if (!"https://accounts.google.com".equals(issuer) && !"accounts.google.com".equals(issuer)) {
             log.warn("Google token issuer invalide: {}", issuer);
             throw AppException.unauthorized("Token Google invalide — issuer incorrect");
@@ -84,7 +87,6 @@ public class GoogleOAuth2Service {
             throw AppException.unauthorized("Token Google invalide — email manquant");
         }
 
-        // Vérification expiration
         if (expObj instanceof Number expNum) {
             long exp = expNum.longValue();
             if (exp * 1000 < System.currentTimeMillis()) {
@@ -92,21 +94,19 @@ public class GoogleOAuth2Service {
             }
         }
 
-        // ── 3. Vérification optionnelle auprès de Google (double-check) ────
-        //    Ceci détecte les tokens révoqués.
+        // Double-check auprès de Google (détecte les tokens révoqués)
         verifyWithGoogleEndpoint(idToken);
 
-        String name  = (String) claims.get("name");
-        String picture = (String) claims.get("picture");
-        Boolean emailVerified = (Boolean) claims.get("email_verified");
-
-        Boolean emailVerifiedBool = Boolean.TRUE.equals(emailVerified);
-        if (!emailVerifiedBool) {
-            log.warn("Google email non verifie: {}", email);
+        Boolean emailVerified = Boolean.TRUE.equals(claims.get("email_verified"));
+        if (!emailVerified) {
+            log.warn("Google email non verifié: {}", email);
             throw AppException.unauthorized("Email Google non vérifié — vérifiez votre compte Google d'abord");
         }
 
-        log.info("Google token validé: email={}, sub={}", email, subject);
+        String name    = (String) claims.get("name");
+        String picture = (String) claims.get("picture");
+
+        log.info("Google JWT validé: email={}, sub={}", email, subject);
 
         return GoogleUserInfo.builder()
                 .googleId(subject)
@@ -115,6 +115,61 @@ public class GoogleOAuth2Service {
                 .pictureUrl(picture)
                 .emailVerified(true)
                 .build();
+    }
+
+    /**
+     * Vérifie un access token OAuth2 via l'API UserInfo de Google.
+     * Utilisé en fallback quand le token n'est pas un JWT (flux popup).
+     */
+    private GoogleUserInfo verifyAccessToken(String accessToken) {
+        try {
+            RestTemplate rest = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> resp = rest.exchange(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    HttpMethod.GET,
+                    entity,
+                    Map.class);
+
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                throw AppException.unauthorized("Token Google invalide — rejeté par Google");
+            }
+
+            Map<String, Object> info = resp.getBody();
+
+            String sub   = (String) info.get("sub");
+            String email = (String) info.get("email");
+            if (sub == null || sub.isBlank() || email == null || email.isBlank()) {
+                throw AppException.unauthorized("Token Google invalide — informations utilisateur manquantes");
+            }
+
+            Boolean emailVerified = Boolean.TRUE.equals(info.get("email_verified"));
+            if (!emailVerified) {
+                throw AppException.unauthorized("Email Google non vérifié — vérifiez votre compte Google d'abord");
+            }
+
+            String name    = (String) info.get("name");
+            String picture = (String) info.get("picture");
+
+            log.info("Google access token validé: email={}, sub={}", email, sub);
+
+            return GoogleUserInfo.builder()
+                    .googleId(sub)
+                    .email(email.toLowerCase().trim())
+                    .name(name)
+                    .pictureUrl(picture)
+                    .emailVerified(true)
+                    .build();
+
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Erreur validation access token Google: {}", e.getMessage());
+            throw AppException.unauthorized("Impossible de valider le token Google");
+        }
     }
 
     /**

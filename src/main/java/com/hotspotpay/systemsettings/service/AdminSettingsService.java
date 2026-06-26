@@ -218,11 +218,18 @@ public class AdminSettingsService {
         add(settings, "payments.campay.baseUrl", "payments", "Campay base URL", "URL de l'API Campay.", "url", "https://demo.campay.net", false);
         add(settings, "payments.campay.username", "payments", "Campay username", "Identifiant Campay.", "text", "", false);
         add(settings, "payments.campay.password", "payments", "Campay password", "Mot de passe Campay. Laisser vide pour conserver.", "password", "", true);
+        add(settings, "payments.campay.callbackUrl", "payments", "Campay URL de callback", "URL appelée par Campay pour notifier le statut du paiement.", "url", "http://localhost:8080/api/V1/payments/campay/webhook", false);
+        add(settings, "payments.campay.redirectUrl", "payments", "Campay URL de redirection", "URL où l'utilisateur est redirigé après un paiement Campay.", "url", "http://localhost:5173/payment/return", false);
+        add(settings, "payments.campay.failureRedirectUrl", "payments", "Campay URL d'échec", "URL de redirection en cas d'échec de paiement Campay.", "url", "http://localhost:5173/payment/return?status=failed", false);
+        add(settings, "payments.campay.permanentToken", "payments", "Campay token permanent", "Token permanent Campay (APP KEYS). Laisser vide pour utiliser identifiant/mot de passe.", "password", "", true);
         add(settings, "payments.moneroo.enabled", "payments", "Moneroo activé", "Active ou désactive Moneroo comme fournisseur de paiement.", "switch", "false", false);
         add(settings, "payments.moneroo.baseUrl", "payments", "Moneroo base URL", "URL de l'API Moneroo.", "url", "https://api.moneroo.io", false);
         add(settings, "payments.moneroo.apiKey", "payments", "Moneroo API key", "Clé API Moneroo. Laisser vide pour conserver.", "password", "", true);
         add(settings, "payments.moneroo.currency", "payments", "Devise Moneroo", "Devise utilisée pour Moneroo.", "text", "XAF", false);
         add(settings, "payments.moneroo.methods", "payments", "Méthodes Moneroo", "Méthodes de paiement séparées par une virgule.", "text", "mtn_cm,orange_cm", false);
+        add(settings, "payments.moneroo.returnUrl", "payments", "Moneroo URL de retour", "URL où l'utilisateur est redirigé après un paiement Moneroo.", "url", "http://localhost:5173/payment/return", false);
+        add(settings, "payments.moneroo.notifyUrl", "payments", "Moneroo URL de notification", "URL webhook appelée par Moneroo pour les notifications de paiement.", "url", "http://localhost:8080/api/V1/payments/moneroo/webhook", false);
+        add(settings, "payments.moneroo.webhookSecret", "payments", "Moneroo secret webhook", "Secret de signature des webhooks Moneroo.", "password", "", true);
 
         add(settings, "fastapi.baseUrl", "fastapi", "FastAPI base URL", "URL du microservice FastAPI utilisé par les routeurs.", "url", "http://localhost:8444", false);
         add(settings, "fastapi.apiKey", "fastapi", "FastAPI API key", "Clé API FastAPI. Laisser vide pour conserver.", "password", "", true);
