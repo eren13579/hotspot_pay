@@ -44,7 +44,7 @@ public class PublicSettingsService {
                 .aboutSubtitle(map.getOrDefault("about.subtitle", ""))
                 .aboutDescription(map.getOrDefault("about.description", ""))
                 .aboutPhotos(parsePhotoUrls(map.getOrDefault("about.photoUrls", "[]")))
-                .whatsappNumber(map.getOrDefault("support.whatsappNumber", ""))
+                .whatsappNumber(map.getOrDefault("support.whatsappNumber", "+237 6XX XXX XXX"))
                 .docsEnabled("true".equals(map.getOrDefault("support.docsEnabled", "true")))
                 .docsUrl(map.getOrDefault("support.docsUrl", "/docs"))
                 .updatedAt(LocalDateTime.now())

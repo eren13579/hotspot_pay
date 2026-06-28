@@ -288,9 +288,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public SubscriptionPlanDto adminUpdatePlan(UUID planId, CreateSubscriptionPlanRequest request) {
-        SubscriptionPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planId));
+    public SubscriptionPlanDto adminUpdatePlan(String planName, CreateSubscriptionPlanRequest request) {
+        SubscriptionPlan plan = planRepository.findByPlanName(planName.toUpperCase())
+                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planName));
 
         plan.setPlanName(request.getPlanName().toUpperCase());
         plan.setMonthlyPrice(request.getMonthlyPrice());
@@ -307,18 +307,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     @Transactional
-    public void adminDeletePlan(UUID planId) {
-        SubscriptionPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planId));
+    public void adminDeletePlan(String planName) {
+        SubscriptionPlan plan = planRepository.findByPlanName(planName.toUpperCase())
+                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planName));
         planRepository.delete(plan);
-        log.info("Plan d'abonnement supprimé: {}", planId);
+        log.info("Plan d'abonnement supprimé: {}", planName);
     }
 
     @Override
     @Transactional
-    public SubscriptionPlanDto adminTogglePopular(UUID planId) {
-        SubscriptionPlan plan = planRepository.findById(planId)
-                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planId));
+    public SubscriptionPlanDto adminTogglePopular(String planName) {
+        SubscriptionPlan plan = planRepository.findByPlanName(planName.toUpperCase())
+                .orElseThrow(() -> AppException.notFound("Plan introuvable: " + planName));
         plan.setPopular(!plan.isPopular());
         planRepository.save(plan);
         log.info("Plan {} popular = {}", plan.getPlanName(), plan.isPopular());
@@ -388,7 +388,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private SubscriptionPlanDto toPlanDto(SubscriptionPlan p) {
         return SubscriptionPlanDto.builder()
-                .id(p.getId())
                 .planName(p.getPlanName())
                 .monthlyPrice(p.getMonthlyPrice())
                 .yearlyPrice(p.getYearlyPrice())

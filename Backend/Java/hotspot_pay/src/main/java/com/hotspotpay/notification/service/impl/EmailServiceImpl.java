@@ -160,6 +160,36 @@ public class EmailServiceImpl implements EmailService {
         ));
     }
 
+    // ── Mot de passe oublié ───────────────────────────────────────────────
+
+    @Async
+    @Override
+    public void sendPasswordReset(String to, String fullName, String resetLink) {
+        String name = fullName != null ? fullName : "cher utilisateur";
+        send(to, "🔐 Réinitialisation de votre mot de passe " + appName, html(
+                "Réinitialisation de mot de passe",
+                "Vous avez demandé la réinitialisation de votre mot de passe <strong>" + appName + "</strong>.",
+                "<p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe. Ce lien expire dans 1 heure.</p>",
+                "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.",
+                resetLink
+        ));
+    }
+
+    // ── Vérification email ─────────────────────────────────────────────────
+
+    @Async
+    @Override
+    public void sendEmailVerification(String to, String fullName, String verifyLink) {
+        String name = fullName != null ? fullName : "cher utilisateur";
+        send(to, "✅ Vérifiez votre adresse email — " + appName, html(
+                "Vérifiez votre email",
+                "Merci de vous être inscrit sur <strong>" + appName + "</strong>, " + name + ".",
+                "<p>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email.</p>",
+                "Si vous n'avez pas créé de compte, ignorez cet email.",
+                verifyLink
+        ));
+    }
+
     // ── Privé — Template HTML ─────────────────────────────────────────────
 
     private void send(String to, String subject, String htmlBody) {

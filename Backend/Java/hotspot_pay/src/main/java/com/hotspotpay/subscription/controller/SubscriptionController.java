@@ -1,6 +1,7 @@
 package com.hotspotpay.subscription.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.dto.ApiResponse;
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.router.service.FastApiSubscriptionClient;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/subscriptions")
@@ -29,6 +29,7 @@ public class SubscriptionController {
 
     private final FastApiSubscriptionClient fastApiSubscriptionClient;
     private final SubscriptionService       subscriptionService;
+    private final AuditService              auditService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
@@ -83,6 +84,7 @@ public class SubscriptionController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Modifier un plan d'abonnement (prix, avantages) — proxy FastAPI")
     public ResponseEntity<ApiResponse<JsonNode>> updatePlan(
+            @AuthenticationPrincipal String adminId,
             @PathVariable String planId,
             @RequestBody Map<String, Object> updates) {
 
@@ -90,6 +92,8 @@ public class SubscriptionController {
         if (result == null) {
             throw AppException.internalError("Erreur lors de la modification du plan (FastAPI)");
         }
+        auditService.log("UPDATE_PLAN", "SubscriptionPlan", planId,
+                "Admin " + adminId + " a modifié le plan " + planId + " — modifications: " + updates);
         return ResponseEntity.ok(ApiResponse.okFromFastApi(result));
     }
 
@@ -107,38 +111,48 @@ public class SubscriptionController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Créer un plan d'abonnement")
     public ResponseEntity<ApiResponse<SubscriptionPlanDto>> adminCreatePlan(
+            @AuthenticationPrincipal String adminId,
             @Valid @RequestBody CreateSubscriptionPlanRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Plan créé avec succès",
-                subscriptionService.adminCreatePlan(request)));
+        var result = subscriptionService.adminCreatePlan(request);
+        auditService.log("CREATE_PLAN", "SubscriptionPlan", result.getPlanName(),
+                "Admin " + adminId + " a créé le plan " + result.getPlanName());
+        return ResponseEntity.ok(ApiResponse.ok("Plan créé avec succès", result));
     }
 
-    @PutMapping("/admin/plans/{planId}")
+    @PutMapping("/admin/plans/{planName}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Modifier un plan d'abonnement")
     public ResponseEntity<ApiResponse<SubscriptionPlanDto>> adminUpdatePlan(
-            @PathVariable UUID planId,
+            @AuthenticationPrincipal String adminId,
+            @PathVariable String planName,
             @Valid @RequestBody CreateSubscriptionPlanRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Plan modifié avec succès",
-                subscriptionService.adminUpdatePlan(planId, request)));
+        var result = subscriptionService.adminUpdatePlan(planName, request);
+        auditService.log("UPDATE_PLAN", "SubscriptionPlan", planName,
+                "Admin " + adminId + " a modifié le plan " + planName);
+        return ResponseEntity.ok(ApiResponse.ok("Plan modifié avec succès", result));
     }
 
-    @DeleteMapping("/admin/plans/{planId}")
+    @DeleteMapping("/admin/plans/{planName}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Supprimer un plan d'abonnement")
     public ResponseEntity<ApiResponse<Void>> adminDeletePlan(
-            @PathVariable UUID planId) {
-        subscriptionService.adminDeletePlan(planId);
+            @AuthenticationPrincipal String adminId,
+            @PathVariable String planName) {
+        subscriptionService.adminDeletePlan(planName);
+        auditService.log("DELETE_PLAN", "SubscriptionPlan", planName,
+                "Admin " + adminId + " a supprimé le plan " + planName);
         return ResponseEntity.ok(ApiResponse.ok("Plan supprimé avec succès"));
     }
 
-    @PatchMapping("/admin/plans/{planId}/toggle-popular")
+    @PatchMapping("/admin/plans/{planName}/toggle-popular")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "[Admin] Activer/désactiver le badge 'Populaire'")
     public ResponseEntity<ApiResponse<SubscriptionPlanDto>> adminTogglePopular(
-            @PathVariable UUID planId) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                subscriptionService.adminTogglePopular(planId)));
+            @AuthenticationPrincipal String adminId,
+            @PathVariable String planName) {
+        var result = subscriptionService.adminTogglePopular(planName);
+        auditService.log("TOGGLE_PLAN_POPULAR", "SubscriptionPlan", planName,
+                "Admin " + adminId + " a basculé le badge 'Populaire' du plan " + planName);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

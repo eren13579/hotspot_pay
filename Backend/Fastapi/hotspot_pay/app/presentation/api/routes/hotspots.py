@@ -131,9 +131,12 @@ async def get_hotspot_public(
 async def list_all_hotspots(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
+    admin_override: bool = Query(True, description="Confirmation admin requise pour lister tous les hotspots"),
     hotspot_service: HotspotService = Depends(get_hotspot_service),
 ):
-    """Lister TOUS les hotspots (admin — aucun filtre user_id)."""
+    """Lister TOUS les hotspots (admin uniquement — aucun filtre user_id)."""
+    if not admin_override:
+        raise HTTPException(status_code=403, detail="Accès refusé: privilèges admin requis")
     items = await hotspot_service.list_all(skip=skip, limit=limit)
     total = await hotspot_service.count_all()
     return {

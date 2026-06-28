@@ -18,6 +18,24 @@ function getPlanId(plan) {
   return plan?.plan_id || plan?.planId || plan?.id
 }
 
+/** Normalise un plan venant de FastAPI (snake_case) ou Java (camelCase) */
+function normalizePlan(plan) {
+  if (!plan) return plan
+  return {
+    ...plan,
+    planId: plan.planId || plan.plan_id || plan.id,
+    hotspotId: plan.hotspotId || plan.hotspot_id,
+    isActive: plan.isActive !== undefined ? plan.isActive : plan.is_active,
+    durationMinutes: plan.durationMinutes || plan.duration_minutes,
+    downloadSpeedKbps: plan.downloadSpeedKbps || plan.download_speed_kbps,
+    uploadSpeedKbps: plan.uploadSpeedKbps || plan.upload_speed_kbps,
+    dataLimitMb: plan.dataLimitMb || plan.data_limit_mb,
+    displayOrder: plan.displayOrder || plan.display_order,
+    createdAt: plan.createdAt || plan.created_at,
+    updatedAt: plan.updatedAt || plan.updated_at,
+  }
+}
+
 function formatDuration(min) {
   if (!min && min !== 0) return ''
   if (min < 60) return `${min} min`
@@ -27,7 +45,7 @@ function formatDuration(min) {
 }
 
 function formatData(mb) {
-  if (!mb && mb !== 0) return 'Illimité'
+  if (!mb) return 'Illimité'
   return mb < 1024 ? `${mb} MB` : `${(mb / 1024).toFixed(1)} Go`
 }
 
@@ -93,9 +111,9 @@ function PlanFormModal({ open, onClose, onSave, editingPlan, saving, isLight }) 
       durationMinutes: parseInt(form.durationMinutes),
       price: parseFloat(form.price),
       currency: form.currency || 'XAF',
-      downloadSpeedKbps: form.downloadSpeedKbps ? parseInt(form.downloadSpeedKbps) : undefined,
-      uploadSpeedKbps: form.uploadSpeedKbps ? parseInt(form.uploadSpeedKbps) : undefined,
-      dataLimitMb: form.dataLimitMb ? parseInt(form.dataLimitMb) : undefined,
+      downloadSpeedKbps: form.downloadSpeedKbps ? parseInt(form.downloadSpeedKbps) : null,
+      uploadSpeedKbps: form.uploadSpeedKbps ? parseInt(form.uploadSpeedKbps) : null,
+      dataLimitMb: form.dataLimitMb ? parseInt(form.dataLimitMb) : null,
     })
   }
 
@@ -358,9 +376,9 @@ export default function PlansTabContent({ hotspotId, data, isLight, onRefresh })
 
   useEffect(() => {
     const items = (() => {
-      if (Array.isArray(data)) return data
-      if (data?.plans) return data.plans
-      return data?.items ?? data?.content ?? []
+      const raw = Array.isArray(data) ? data
+        : data?.plans ?? data?.items ?? data?.content ?? []
+      return Array.isArray(raw) ? raw.map(normalizePlan) : []
     })()
     setPlans(items)
     setLoading(false)

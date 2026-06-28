@@ -2,6 +2,7 @@ package com.hotspotpay.withdrawal.service.impl;
 
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.dashboard.repository.DashboardRepository;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.users.service.PlanLimitService;
 import com.hotspotpay.withdrawal.dto.WithdrawalRequest;
 import com.hotspotpay.withdrawal.dto.WithdrawalResponse;
@@ -30,6 +31,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
     private final WithdrawalRepository withdrawalRepository;
     private final PlanLimitService     planLimitService;
     private final DashboardRepository  dashboardRepository;
+    private final SystemSseService     systemSseService;
 
     @Override
     @Transactional
@@ -64,6 +66,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
 
         log.info("Demande de retrait créée: withdrawalId={}, userId={}, amount={} XAF",
                 withdrawalId, userId, req.getAmount());
+
+        systemSseService.broadcast("withdrawal_updated", "new:" + withdrawalId);
 
         // TODO : Intégrer API de disbursement Campay/Moneroo pour retrait automatique
         // Pour le MVP : retrait manuel traité par l'admin
@@ -125,6 +129,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         log.info("Retrait approuvé par admin: withdrawalId={}, amount={} XAF",
                 withdrawalId, w.getAmount());
 
+        systemSseService.broadcast("withdrawal_updated", "approved:" + withdrawalId);
+
         return toResponse(w, "Retrait approuvé et traité avec succès");
     }
 
@@ -144,6 +150,8 @@ public class WithdrawalServiceImpl implements WithdrawalService {
         withdrawalRepository.save(w);
 
         log.info("Retrait rejeté par admin: withdrawalId={}, reason={}", withdrawalId, w.getFailureReason());
+
+        systemSseService.broadcast("withdrawal_updated", "rejected:" + withdrawalId);
 
         return toResponse(w, "Retrait rejeté");
     }
@@ -166,6 +174,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             log.info("Retrait approuvé (batch): withdrawalId={}, amount={} XAF", w.getWithdrawalId(), w.getAmount());
             return toResponse(w, "Retrait approuvé avec succès");
         }).collect(Collectors.toList());
+        systemSseService.broadcast("withdrawal_updated", "batch_approved:" + String.join(",", withdrawalIds));
         return results;
     }
 
@@ -185,6 +194,7 @@ public class WithdrawalServiceImpl implements WithdrawalService {
             log.info("Retrait rejeté (batch): withdrawalId={}, reason={}", w.getWithdrawalId(), failReason);
             return toResponse(w, "Retrait rejeté");
         }).collect(Collectors.toList());
+        systemSseService.broadcast("withdrawal_updated", "batch_rejected:" + String.join(",", withdrawalIds));
         return results;
     }
 

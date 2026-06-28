@@ -2,7 +2,7 @@ package com.hotspotpay.systemsettings.service;
 
 import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.exception.AppException;
-import com.hotspotpay.realtime.service.SseService;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.systemsettings.dto.SectionResponse;
 import com.hotspotpay.systemsettings.dto.SettingItemResponse;
 import com.hotspotpay.systemsettings.dto.SettingItemUpdateRequest;
@@ -29,7 +29,7 @@ public class AdminSettingsService {
 
     private final SystemSettingRepository repository;
     private final AuditService auditService;
-    private final SseService sseService;
+    private final SystemSseService systemSseService;
 
     @Transactional(readOnly = true)
     public SystemSettingsResponse getSettings() {
@@ -114,16 +114,8 @@ public class AdminSettingsService {
 
         if (changedKeys.isEmpty()) {
             log.info("System settings save requested without secret replacement: userId={}", currentUserId());
-        }
-
-        // Broadcast SSE — tous les clients recoivent le signal de mise à jour
-        try {
-            sseService.broadcast("settings_updated", Map.of(
-                    "type", "settings_updated",
-                    "changedKeys", changedKeys
-            ));
-        } catch (Exception e) {
-            log.warn("SSE broadcast error: {}", e.getMessage());
+        } else {
+            systemSseService.broadcast("settings_updated", changedKeys);
         }
 
         return getSettings();
@@ -194,7 +186,6 @@ public class AdminSettingsService {
             case "general" -> "Général";
             case "branding" -> "Marque et présentation";
             case "about" -> "À propos";
-            case "support" -> "Support";
             case "payments" -> "Paiements";
             case "fastapi" -> "FastAPI et routeurs";
             case "portal" -> "Portail captif";
@@ -223,19 +214,22 @@ public class AdminSettingsService {
         add(settings, "about.description", "about", "Description À propos", "Texte détaillé de présentation de HotspotPay.", "text", "HotspotPay aide les gérants de hotspots WiFi à vendre des accès internet, suivre les paiements mobile money et gérer les sessions clients depuis un tableau de bord clair.", false);
         add(settings, "about.photoUrls", "about", "Photos À propos", "Liste JSON des URLs ou chemins des photos affichées dans la section À propos.", "json", "[\"/about/hotspot-1.jpg\",\"/about/hotspot-2.jpg\",\"/about/hotspot-3.jpg\"]", false);
 
-        add(settings, "support.whatsappNumber", "support", "Numéro WhatsApp", "Numéro WhatsApp affiché sur la page Aide & Support.", "text", "+237 6XX XXX XXX", false);
-        add(settings, "support.docsEnabled", "support", "Documentation activée", "Affiche ou masque la section Documentation sur la page Aide & Support.", "switch", "true", false);
-        add(settings, "support.docsUrl", "support", "URL documentation", "Lien vers la documentation utilisateur.", "url", "/docs", false);
-
         add(settings, "payments.campay.enabled", "payments", "Campay activé", "Active ou désactive Campay comme fournisseur de paiement.", "switch", "true", false);
         add(settings, "payments.campay.baseUrl", "payments", "Campay base URL", "URL de l'API Campay.", "url", "https://demo.campay.net", false);
         add(settings, "payments.campay.username", "payments", "Campay username", "Identifiant Campay.", "text", "", false);
         add(settings, "payments.campay.password", "payments", "Campay password", "Mot de passe Campay. Laisser vide pour conserver.", "password", "", true);
+        add(settings, "payments.campay.callbackUrl", "payments", "Campay URL de callback", "URL appelée par Campay pour notifier le statut du paiement.", "url", "http://localhost:8080/api/V1/payments/campay/webhook", false);
+        add(settings, "payments.campay.redirectUrl", "payments", "Campay URL de redirection", "URL où l'utilisateur est redirigé après un paiement Campay.", "url", "http://localhost:5173/payment/return", false);
+        add(settings, "payments.campay.failureRedirectUrl", "payments", "Campay URL d'échec", "URL de redirection en cas d'échec de paiement Campay.", "url", "http://localhost:5173/payment/return?status=failed", false);
+        add(settings, "payments.campay.permanentToken", "payments", "Campay token permanent", "Token permanent Campay (APP KEYS). Laisser vide pour utiliser identifiant/mot de passe.", "password", "", true);
         add(settings, "payments.moneroo.enabled", "payments", "Moneroo activé", "Active ou désactive Moneroo comme fournisseur de paiement.", "switch", "false", false);
         add(settings, "payments.moneroo.baseUrl", "payments", "Moneroo base URL", "URL de l'API Moneroo.", "url", "https://api.moneroo.io", false);
         add(settings, "payments.moneroo.apiKey", "payments", "Moneroo API key", "Clé API Moneroo. Laisser vide pour conserver.", "password", "", true);
         add(settings, "payments.moneroo.currency", "payments", "Devise Moneroo", "Devise utilisée pour Moneroo.", "text", "XAF", false);
         add(settings, "payments.moneroo.methods", "payments", "Méthodes Moneroo", "Méthodes de paiement séparées par une virgule.", "text", "mtn_cm,orange_cm", false);
+        add(settings, "payments.moneroo.returnUrl", "payments", "Moneroo URL de retour", "URL où l'utilisateur est redirigé après un paiement Moneroo.", "url", "http://localhost:5173/payment/return", false);
+        add(settings, "payments.moneroo.notifyUrl", "payments", "Moneroo URL de notification", "URL webhook appelée par Moneroo pour les notifications de paiement.", "url", "http://localhost:8080/api/V1/payments/moneroo/webhook", false);
+        add(settings, "payments.moneroo.webhookSecret", "payments", "Moneroo secret webhook", "Secret de signature des webhooks Moneroo.", "password", "", true);
 
         add(settings, "fastapi.baseUrl", "fastapi", "FastAPI base URL", "URL du microservice FastAPI utilisé par les routeurs.", "url", "http://localhost:8444", false);
         add(settings, "fastapi.apiKey", "fastapi", "FastAPI API key", "Clé API FastAPI. Laisser vide pour conserver.", "password", "", true);
@@ -245,9 +239,6 @@ public class AdminSettingsService {
         add(settings, "portal.pollingIntervalSeconds", "portal", "Intervalle polling portail", "Nombre de secondes entre deux vérifications de paiement.", "number", "5", false);
         add(settings, "portal.pollingMaxAttempts", "portal", "Tentatives max polling", "Nombre maximum de tentatives avant échec.", "number", "36", false);
         add(settings, "portal.sessionActivationRetry", "portal", "Retours activation session", "Nombre de tentatives d'activation de session.", "number", "3", false);
-        add(settings, "portal.idleTimeoutMinutes", "portal", "Délai d'inactivité", "Durée en minutes avant déconnexion automatique du client WiFi (0 = illimité).", "number", "30", false);
-        add(settings, "portal.maxSessionHours", "portal", "Durée max de session", "Durée maximale de session en heures (0 = illimité).", "number", "0", false);
-        add(settings, "portal.maxSimultaneousSessions", "portal", "Sessions simultanées max", "Nombre maximum de sessions simultanées par client.", "number", "3", false);
 
         add(settings, "security.corsAllowedOrigins", "security", "Origines CORS", "Origines autorisées, séparées par une virgule.", "text", "*", false);
         add(settings, "security.webhookAllowedIps", "security", "IP webhooks autorisées", "IP autorisées pour les webhooks, séparées par une virgule.", "text", "*", false);
@@ -263,11 +254,12 @@ public class AdminSettingsService {
         add(settings, "notifications.mailPassword", "notifications", "SMTP password", "Mot de passe SMTP. Laisser vide pour conserver.", "password", "", true);
         add(settings, "notifications.mailFrom", "notifications", "Email expéditeur", "Email utilisé comme expéditeur.", "email", "no-reply@hotspotpay.cm", false);
 
-        add(settings, "withdrawals.feePercentage", "withdrawals", "Commission (%)", "Pourcentage prélevé sur chaque retrait.", "number", "5", false);
-        add(settings, "withdrawals.feeFixed", "withdrawals", "Frais fixes", "Frais fixes appliqués à chaque retrait (dans la devise du hotspot).", "number", "0", false);
-        add(settings, "withdrawals.minAmount", "withdrawals", "Montant minimum", "Montant minimum autorisé pour un retrait.", "number", "1000", false);
-        add(settings, "withdrawals.processingTime", "withdrawals", "Délai de traitement (heures)", "Délai maximal de traitement avant validation automatique.", "number", "24", false);
-        add(settings, "withdrawals.enabledMethods", "withdrawals", "Méthodes autorisées", "Méthodes de retrait séparées par des virgules (mtn, orange, bank).", "text", "mtn,orange", false);
+        add(settings, "withdrawals.enabled", "withdrawals", "Retraits activés", "Active ou désactive les demandes de retrait.", "switch", "true", false);
+        add(settings, "withdrawals.minAmount", "withdrawals", "Montant minimum", "Montant minimum d'un retrait en XAF.", "number", "1000", false);
+        add(settings, "withdrawals.maxAmount", "withdrawals", "Montant maximum", "Montant maximum d'un retrait en XAF.", "number", "500000", false);
+        add(settings, "withdrawals.feeFixed", "withdrawals", "Frais fixes", "Frais fixes appliqués à chaque retrait en XAF.", "number", "0", false);
+        add(settings, "withdrawals.feePercentage", "withdrawals", "Frais en %", "Pourcentage de frais sur le montant du retrait.", "number", "1.5", false);
+        add(settings, "withdrawals.methods", "withdrawals", "Méthodes disponibles", "Méthodes de retrait séparées par une virgule (orange,mtn,airtel).", "text", "orange,mtn", false);
 
         return settings;
     }

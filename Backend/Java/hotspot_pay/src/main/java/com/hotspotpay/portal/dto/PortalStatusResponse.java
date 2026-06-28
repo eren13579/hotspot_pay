@@ -15,12 +15,6 @@ public class PortalStatusResponse {
     private boolean wifiActivated;
     /** true si paiement confirmé mais activation MikroTik encore en cours */
     private boolean activationPending;
-    /** true si auto-connect désactivé et credentials disponibles pour connexion manuelle */
-    private boolean credentialsAvailable;
-    /** Nom d'utilisateur WiFi pour connexion manuelle */
-    private String manualUsername;
-    /** Mot de passe WiFi pour connexion manuelle */
-    private String manualPassword;
     // Rempli quand wifiActivated = true
     private SessionInfo session;
 

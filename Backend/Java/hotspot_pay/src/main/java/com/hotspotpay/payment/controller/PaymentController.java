@@ -1,6 +1,7 @@
 package com.hotspotpay.payment.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.dto.ApiResponse;
 import com.hotspotpay.common.exception.AppException;
 import com.hotspotpay.payment.util.WebhookValidationUtil;
@@ -25,6 +26,7 @@ public class PaymentController {
 
     private final FastApiPaymentClient fastApiPaymentClient;
     private final WebhookValidationUtil webhookValidationUtil;
+    private final AuditService auditService;
 
     // ──────────────────────────────────────────────────────────────────────
     // DASHBOARD PROPRIÉTAIRE (Proxy FastAPI)
@@ -101,11 +103,14 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Rembourser un paiement (admin)")
     public ResponseEntity<ApiResponse<JsonNode>> refund(
+            @AuthenticationPrincipal String adminId,
             @PathVariable String paymentId) {
         JsonNode result = fastApiPaymentClient.refundPayment(paymentId);
         if (result == null) {
             throw AppException.internalError("Erreur lors du remboursement (FastAPI)");
         }
+        auditService.log("REFUND_PAYMENT", "Payment", paymentId,
+                "Admin " + adminId + " a remboursé le paiement " + paymentId);
         return ResponseEntity.ok(ApiResponse.okFromFastApi(result));
     }
 }

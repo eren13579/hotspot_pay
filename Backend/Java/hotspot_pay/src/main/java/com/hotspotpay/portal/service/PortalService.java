@@ -22,10 +22,4 @@ public interface PortalService {
      * Vérifie le statut du paiement — appelé en polling par le frontend.
      */
     PortalStatusResponse checkStatus(String reference);
-
-    /**
-     * Active manuellement la session WiFi après paiement avec auto-connect désactivé.
-     * Appelé quand le client clique "Se connecter" sur le portail.
-     */
-    PortalStatusResponse connectManually(String reference, String mac);
 }

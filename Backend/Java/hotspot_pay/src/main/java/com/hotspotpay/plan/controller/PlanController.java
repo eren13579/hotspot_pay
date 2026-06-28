@@ -98,9 +98,9 @@ public class PlanController {
         if (request.getDurationMinutes() != null) fields.put("duration_minutes", request.getDurationMinutes());
         if (request.getPrice() != null) fields.put("price", request.getPrice().toString());
         if (request.getCurrency() != null) fields.put("currency", request.getCurrency());
-        if (request.getDownloadSpeedKbps() != null) fields.put("download_speed_kbps", request.getDownloadSpeedKbps());
-        if (request.getUploadSpeedKbps() != null) fields.put("upload_speed_kbps", request.getUploadSpeedKbps());
-        if (request.getDataLimitMb() != null) fields.put("data_limit_mb", request.getDataLimitMb());
+        fields.put("download_speed_kbps", request.getDownloadSpeedKbps());
+        fields.put("upload_speed_kbps", request.getUploadSpeedKbps());
+        fields.put("data_limit_mb", request.getDataLimitMb());
         if (request.getDisplayOrder() != null) fields.put("display_order", request.getDisplayOrder());
 
         JsonNode result = fastApiPlanClient.updatePlan(userId, hotspotId, planId, fields);

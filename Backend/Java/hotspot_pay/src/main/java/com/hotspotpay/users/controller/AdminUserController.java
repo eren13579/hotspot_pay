@@ -1,5 +1,6 @@
 package com.hotspotpay.users.controller;
 
+import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.dto.ApiResponse;
 import com.hotspotpay.users.dto.CreateUserRequest;
 import com.hotspotpay.users.dto.UpdateUserRequest;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
 
     private final UserService userService;
+    private final AuditService auditService;
 
     @GetMapping
     @Operation(summary = "Lister les utilisateurs (paginé, filtrable)")
@@ -55,22 +58,34 @@ public class AdminUserController {
     @PutMapping("/{userId}")
     @Operation(summary = "Modifier un utilisateur")
     public ResponseEntity<ApiResponse<UserResponse>> update(
+            @AuthenticationPrincipal String adminId,
             @PathVariable String userId,
             @Valid @RequestBody UpdateUserRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Utilisateur mis à jour", userService.update(userId, request)));
+        UserResponse result = userService.update(userId, request);
+        auditService.log("UPDATE_USER", "User", userId,
+                "Admin " + adminId + " a modifié l'utilisateur " + userId);
+        return ResponseEntity.ok(ApiResponse.ok("Utilisateur mis à jour", result));
     }
 
     @PostMapping
     @Operation(summary = "Créer un nouvel utilisateur")
     public ResponseEntity<ApiResponse<UserResponse>> create(
+            @AuthenticationPrincipal String adminId,
             @Valid @RequestBody CreateUserRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok("Utilisateur créé", userService.create(request)));
+        UserResponse result = userService.create(request);
+        auditService.log("CREATE_USER", "User", result.getUserId(),
+                "Admin " + adminId + " a créé l'utilisateur " + result.getEmail());
+        return ResponseEntity.ok(ApiResponse.ok("Utilisateur créé", result));
     }
 
     @DeleteMapping("/{userId}")
     @Operation(summary = "Désactiver un utilisateur (soft delete)")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String userId) {
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @AuthenticationPrincipal String adminId,
+            @PathVariable String userId) {
         userService.delete(userId);
+        auditService.log("DEACTIVATE_USER", "User", userId,
+                "Admin " + adminId + " a désactivé l'utilisateur " + userId);
         return ResponseEntity.ok(ApiResponse.ok("Utilisateur désactivé"));
     }
 }

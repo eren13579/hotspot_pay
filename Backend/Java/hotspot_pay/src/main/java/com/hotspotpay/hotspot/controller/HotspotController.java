@@ -3,6 +3,7 @@ package com.hotspotpay.hotspot.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.hotspotpay.common.dto.ApiResponse;
 import com.hotspotpay.common.exception.AppException;
+import com.hotspotpay.realtime.service.SystemSseService;
 import com.hotspotpay.hotspot.dto.*;
 import com.hotspotpay.router.service.FastApiClient;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,7 @@ import java.util.List;
 public class HotspotController {
 
     private final FastApiClient fastApiClient;
+    private final SystemSseService systemSseService;
 
     @Value("${app.base-url:http://localhost:8080/api/V1}")
     private String appBaseUrl;
@@ -58,6 +60,8 @@ public class HotspotController {
         if (result == null) {
             throw AppException.internalError("Erreur lors de la création du hotspot (FastAPI)");
         }
+
+        systemSseService.broadcast("hotspot_updated", "created:" + userId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.okFromFastApi(result));
@@ -146,6 +150,8 @@ public class HotspotController {
             throw AppException.notFound("Hotspot introuvable ou accès non autorisé");
         }
 
+        systemSseService.broadcast("hotspot_updated", "updated:" + hotspotId);
+
         return ResponseEntity.ok(ApiResponse.okFromFastApi(result));
     }
 
@@ -163,6 +169,8 @@ public class HotspotController {
         if (!deleted) {
             throw AppException.notFound("Hotspot introuvable ou accès non autorisé");
         }
+
+        systemSseService.broadcast("hotspot_updated", "deleted:" + hotspotId);
 
         return ResponseEntity.ok(ApiResponse.ok("Hotspot supprimé"));
     }

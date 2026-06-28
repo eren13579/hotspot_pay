@@ -31,45 +31,38 @@ public class FastApiDashboardClient {
     }
 
     public JsonNode getOverview(String userId, String startDate, String endDate) {
-        try {
-            String url = "/api/v1/dashboard/overview?user_id={userId}";
-            if (startDate != null && !startDate.isBlank()) url += "&start_date=" + startDate;
-            if (endDate != null && !endDate.isBlank()) url += "&end_date=" + endDate;
-            return restClient.get()
-                    .uri(url, userId)
+        String url = "/api/v1/dashboard/overview?user_id={userId}";
+        if (startDate != null && !startDate.isBlank()) url += "&start_date=" + startDate;
+        if (endDate != null && !endDate.isBlank()) url += "&end_date=" + endDate;
+        String finalUrl = url;
+        return FastApiRetryHelper.retry("getOverview", () ->
+            restClient.get()
+                    .uri(finalUrl, userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI dashboard overview error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode getAdminOverview(String startDate, String endDate) {
-        try {
-            String url = "/api/v1/dashboard/admin/overview";
-            if (startDate != null && !startDate.isBlank()) url += "?start_date=" + startDate;
-            if (endDate != null && !endDate.isBlank()) url += "&end_date=" + endDate;
-            return restClient.get()
-                    .uri(url)
+        String url = "/api/v1/dashboard/admin/overview";
+        if (startDate != null && !startDate.isBlank()) url += "?start_date=" + startDate;
+        if (endDate != null && !endDate.isBlank()) url += "&end_date=" + endDate;
+        String finalUrl = url;
+        return FastApiRetryHelper.retry("getAdminOverview", () ->
+            restClient.get()
+                    .uri(finalUrl)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI admin overview error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode getHotspotStats(String userId, String hotspotId, boolean adminOverride) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getHotspotStats", () ->
+            restClient.get()
                     .uri("/api/v1/dashboard/hotspot/{hotspotId}?user_id={userId}&admin_override={adminOverride}",
                          hotspotId, userId, adminOverride)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI dashboard hotspotStats error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

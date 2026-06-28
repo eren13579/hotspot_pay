@@ -6,12 +6,10 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
 @Builder
 public class SubscriptionPlanDto {
-    private UUID id;
     private String planName;
     private BigDecimal monthlyPrice;
     private BigDecimal yearlyPrice;

@@ -54,18 +54,18 @@ public class FastApiRouterActionClient {
      */
     public String createAction(String hotspotId, RouterActionType actionType,
                                 RouterActionPayload payload, String sessionId) {
-        try {
-            Map<String, Object> body = new HashMap<>();
-            body.put("hotspot_id", hotspotId);
-            body.put("action_type", actionType.name());
-            body.put("username", payload.getUsername() != null ? payload.getUsername() : "");
-            body.put("password", payload.getPassword() != null ? payload.getPassword() : "");
-            body.put("profile", payload.getHotspotProfile() != null ? payload.getHotspotProfile() : "default");
-            body.put("time_limit", payload.getTimeLimit() != null ? payload.getTimeLimit() : "");
-            body.put("data_limit", payload.getDataLimit() != null ? payload.getDataLimit() : "");
-            body.put("comment", payload.getComment() != null ? payload.getComment() : "HP:" + sessionId);
-            body.put("mac_address", payload.getMacAddress() != null ? payload.getMacAddress() : "");
+        Map<String, Object> body = new HashMap<>();
+        body.put("hotspot_id", hotspotId);
+        body.put("action_type", actionType.name());
+        body.put("username", payload.getUsername() != null ? payload.getUsername() : "");
+        body.put("password", payload.getPassword() != null ? payload.getPassword() : "");
+        body.put("profile", payload.getHotspotProfile() != null ? payload.getHotspotProfile() : "default");
+        body.put("time_limit", payload.getTimeLimit() != null ? payload.getTimeLimit() : "");
+        body.put("data_limit", payload.getDataLimit() != null ? payload.getDataLimit() : "");
+        body.put("comment", payload.getComment() != null ? payload.getComment() : "HP:" + sessionId);
+        body.put("mac_address", payload.getMacAddress() != null ? payload.getMacAddress() : "");
 
+        return FastApiRetryHelper.retry("createAction", () -> {
             Map<String, Object> response = restClient.post()
                     .uri("/api/v1/router/actions/create")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -82,10 +82,6 @@ public class FastApiRouterActionClient {
 
             log.warn("FastAPI: Réponse inattendue pour création action: {}", response);
             return null;
-        } catch (RestClientException e) {
-            log.error("FastAPI: Erreur création action type={} user={} hotspot={}: {}",
-                    actionType, payload.getUsername(), hotspotId, e.getMessage());
-            return null;
-        }
+        });
     }
 }

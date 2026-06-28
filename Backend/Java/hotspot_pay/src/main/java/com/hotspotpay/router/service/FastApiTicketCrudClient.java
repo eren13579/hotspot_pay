@@ -33,104 +33,81 @@ public class FastApiTicketCrudClient {
     }
 
     public JsonNode importTickets(Object requestBody) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("importTickets", () ->
+            restClient.post()
                     .uri("/api/v1/tickets/import")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI importTickets error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode listByHotspot(String hotspotId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listByHotspot", () ->
+            restClient.get()
                     .uri("/api/v1/tickets?hotspot_id={hotspotId}", hotspotId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listTickets error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode revoke(String ticketId) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("revoke", () ->
+            restClient.post()
                     .uri("/api/v1/tickets/{ticketId}/revoke", ticketId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI revokeTicket error ticketId={}: {}", ticketId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public boolean deleteByTicketId(String ticketId) {
-        try {
+        return FastApiRetryHelper.retryBool("deleteByTicketId", () -> {
             restClient.delete()
                     .uri("/api/v1/tickets/{ticketId}", ticketId)
                     .retrieve()
                     .toBodilessEntity();
             return true;
-        } catch (RestClientException e) {
-            log.error("FastAPI deleteTicket error ticketId={}: {}", ticketId, e.getMessage());
-            return false;
-        }
+        });
     }
 
     public JsonNode deleteAllByHotspot(String hotspotId) {
-        try {
-            return restClient.delete()
+        return FastApiRetryHelper.retry("deleteAllByHotspot", () ->
+            restClient.delete()
                     .uri("/api/v1/tickets?hotspot_id={hotspotId}", hotspotId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI deleteAllTickets error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     // ── Portal captif ─────────────────────────────────────────────────────
 
     public JsonNode portalConnect(String hotspotId, String username, String password,
                                    String mac, String phone) {
-        try {
-            Map<String, Object> body = new java.util.HashMap<>();
-            body.put("hotspot_id", hotspotId);
-            body.put("username", username);
-            body.put("password", password);
-            if (mac != null) body.put("mac", mac);
-            if (phone != null) body.put("phone", phone);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("hotspot_id", hotspotId);
+        body.put("username", username);
+        body.put("password", password);
+        if (mac != null) body.put("mac", mac);
+        if (phone != null) body.put("phone", phone);
 
-            return restClient.post()
+        return FastApiRetryHelper.retry("portalConnect", () ->
+            restClient.post()
                     .uri("/api/v1/tickets/portal/connect")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI portalConnect error hotspotId={} user={}: {}",
-                    hotspotId, username, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode getPortalTicketInfo(String hotspotId, String username) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getPortalTicketInfo", () ->
+            restClient.get()
                     .uri("/api/v1/tickets/portal/{hotspotId}/{username}/info",
                             hotspotId, username)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getPortalTicketInfo error hotspotId={} user={}: {}",
-                    hotspotId, username, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

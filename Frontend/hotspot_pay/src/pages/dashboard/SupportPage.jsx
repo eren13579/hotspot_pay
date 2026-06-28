@@ -94,7 +94,17 @@ export default function SupportPage() {
     setError(null)
     faqApi.list()
       .then(({ data }) => {
-        if (!cancelled) setFaqData(data.data || {})
+        if (!cancelled) {
+          // Grouper les FAQs par catégorie (l'API renvoie une liste plate)
+          const raw = Array.isArray(data.data) ? data.data : []
+          const grouped = {}
+          raw.forEach(item => {
+            const cat = item.category || 'other'
+            if (!grouped[cat]) grouped[cat] = []
+            grouped[cat].push(item)
+          })
+          setFaqData(grouped)
+        }
       })
       .catch(err => {
         if (!cancelled) setError(err.response?.data?.message || 'Impossible de charger la FAQ')

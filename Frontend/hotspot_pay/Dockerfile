@@ -1,50 +1,57 @@
-# ====================================================================
-# HotspotPay — Frontend Dockerfile
-# Build multi-stage : pnpm install → Vite build → Nginx serve
-# ====================================================================
-
-# ── Stage 1 : Build ───────────────────────────────────────────────
+# ── Build stage ─────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
-# Install pnpm
+# pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copier les fichiers de dépendances
 COPY package.json pnpm-lock.yaml ./
-
-# Installer les dépendances (frozen lockfile = reproductible)
 RUN pnpm install --frozen-lockfile
 
-# Copier le code source
 COPY . .
+RUN pnpm build
 
-# Build production
-RUN pnpm run build
+# ── Runtime stage (Nginx) ──────────────────────────────────────────────────
+FROM nginx:1.27-alpine
 
-# ── Stage 2 : Serveur Nginx ───────────────────────────────────────
-FROM nginx:stable-alpine
-
-# Copier le build React
+# Copier le build
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Configuration Nginx : SPA routing (fallback vers index.html)
-RUN echo 'server { \
-    listen 80; \
-    server_name localhost; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-    location /api/ { \
-        proxy_pass http://backend-java:8080; \
-        proxy_set_header Host $host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copier la config Nginx avec proxy API vers Java
+COPY <<'EOF' /etc/nginx/conf.d/default.conf
+server {
+    listen 5173;
+    server_name _;
 
-EXPOSE 80
+    root /usr/share/nginx/html;
+    index index.html;
 
+    # Gzip
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/xml image/svg+xml;
+    gzip_min_length 1000;
+
+    # SPA — toutes les routes vers index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API vers Java Spring Boot
+    location /api/ {
+        proxy_pass http://backend-java:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Cache static
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+EXPOSE 5173
 CMD ["nginx", "-g", "daemon off;"]

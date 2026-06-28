@@ -32,79 +32,61 @@ public class FastApiSessionClient {
     }
 
     public JsonNode listByHotspot(String userId, String hotspotId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listByHotspot", () ->
+            restClient.get()
                     .uri("/api/v1/sessions/hotspot/{hotspotId}", hotspotId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listSessions error hotspotId={}: {}", hotspotId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode getById(String userId, String sessionId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("getById", () ->
+            restClient.get()
                     .uri("/api/v1/sessions/{sessionId}", sessionId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI getSession error sessionId={}: {}", sessionId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode listActive() {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listActive", () ->
+            restClient.get()
                     .uri("/api/v1/sessions/active")
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listActiveSessions error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode listAll(String userId) {
-        try {
-            return restClient.get()
+        return FastApiRetryHelper.retry("listAll", () ->
+            restClient.get()
                     .uri("/api/v1/sessions/all")
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI listAllSessions error: {}", e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode revoke(String userId, String sessionId) {
-        try {
-            return restClient.post()
+        return FastApiRetryHelper.retry("revoke", () ->
+            restClient.post()
                     .uri("/api/v1/sessions/{sessionId}/revoke", sessionId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI revokeSession error sessionId={}: {}", sessionId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 
     public JsonNode delete(String userId, String sessionId) {
-        try {
-            return restClient.delete()
+        return FastApiRetryHelper.retry("delete", () ->
+            restClient.delete()
                     .uri("/api/v1/sessions/{sessionId}", sessionId)
                     .header("user-id", userId)
                     .retrieve()
-                    .body(JsonNode.class);
-        } catch (RestClientException e) {
-            log.error("FastAPI deleteSession error sessionId={}: {}", sessionId, e.getMessage());
-            return null;
-        }
+                    .body(JsonNode.class)
+        );
     }
 }

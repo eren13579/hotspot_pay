@@ -28,6 +28,4 @@ public class UpdateUserRequest {
 
     @Size(min = 8, message = "Veuillez confirmer votre mot de passe")
     private String confirmPassword;
-
-    private Boolean autoConnect;
 }

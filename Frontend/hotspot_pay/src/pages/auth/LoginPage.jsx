@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import LeftPanel from "../../components/auth/LeftPanel";
 import AuthLoader from "../../components/loader/AuthLoader";
@@ -13,6 +13,7 @@ function LoginPage() {
     return localStorage.getItem('hotspotpay-remember') === 'true';
   });
   const [totpCode, setTotpCode] = useState('');
+  const [googleError, setGoogleError] = useState('');
   const totpInputRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -74,9 +75,61 @@ function LoginPage() {
   const handleRegister = () => navigate("/sign-up");
   const togglePassword = () => setShowPassword(!showPassword);
 
-  const handleGoogle = async (idToken) => {
-    await google(idToken);
+  const handleGoogle = async (accessToken, userInfo) => {
+    if (!accessToken) return;
+    setGoogleError('');
+    // Envoie l'access_token + infos user récupérées de l'API userinfo
+    await google({
+      idToken: accessToken,
+      email: userInfo.email,
+      name: userInfo.name,
+      googleId: userInfo.sub,
+      picture: userInfo.picture,
+    });
   };
+
+  // ── Google OAuth2 (popup — pas de FedCM) ──────────────────────────────────
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const handleGoogleClick = useCallback(() => {
+    if (!window.google?.accounts?.oauth2) {
+      setGoogleError("Chargement de Google... réessayez dans un instant");
+      return;
+    }
+
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid profile email',
+      callback: (tokenResponse) => {
+        if (tokenResponse.access_token) {
+          // Récupère les infos user depuis l'API Google UserInfo
+          fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          })
+            .then((res) => res.json())
+            .then((userInfo) => {
+              const { sub, email, name, picture } = userInfo;
+              if (!sub || !email) {
+                setGoogleError("Impossible de récupérer vos informations Google");
+                return;
+              }
+              handleGoogle(tokenResponse.access_token, { sub, email, name, picture });
+            })
+            .catch(() => {
+              setGoogleError("Erreur de communication avec Google");
+            });
+        }
+      },
+      error_callback: (error) => {
+        if (error.type !== 'popup_closed') {
+          console.error('Google OAuth error:', error);
+          setGoogleError("Erreur de connexion Google");
+        }
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  }, []);
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-5 min-h-screen w-full bg-slate-950 overflow-y-auto lg:overflow-hidden">
@@ -267,10 +320,16 @@ function LoginPage() {
               <div className="flex-1 h-px bg-slate-800" />
             </div>
 
+            {googleError && (
+              <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-lg text-center border border-red-500/20">
+                {googleError}
+              </div>
+            )}
+
             <button
               type="button"
               className="h-12 sm:h-11 rounded-lg flex justify-center items-center gap-2.5 bg-slate-800 border border-slate-700 hover:border-slate-600 active:border-slate-500 text-slate-300 text-sm transition-colors"
-              onClick={handleGoogle}
+              onClick={handleGoogleClick}
             >
               <svg width="16" viewBox="0 0 512 512">
                 <path d="M113.47,309.408L95.648,375.94l-65.139,1.378C11.042,341.211,0,299.9,0,256c0-42.451,10.324-82.483,28.624-117.732h0.014l57.992,10.632l25.404,57.644c-5.317,15.501-8.215,32.141-8.215,49.456C103.821,274.792,107.225,292.797,113.47,309.408z" fill="#FBBB00" />

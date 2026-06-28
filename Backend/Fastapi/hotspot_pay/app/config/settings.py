@@ -62,7 +62,7 @@ def get_settings() -> Settings:
     if not s.DATABASE_URL:
         from urllib.parse import quote_plus
         s.DATABASE_URL = (
-            f"postgresql+asyncpg://{s.DB_USER}:{quote_plus(s.DB_PASSWORD)}"
+            f"postgresql+psycopg://{s.DB_USER}:{quote_plus(s.DB_PASSWORD)}"
             f"@{s.DB_HOST}:{s.DB_PORT}/{s.DB_NAME}"
         )
     return s

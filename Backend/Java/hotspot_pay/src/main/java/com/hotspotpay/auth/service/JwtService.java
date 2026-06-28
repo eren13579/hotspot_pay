@@ -82,28 +82,65 @@ public class JwtService {
     }
 
     /**
-     * Génère un token temporaire (5 min) pour l'étape 2FA.
+     * Génère un token temporaire pour la validation 2FA (5 minutes).
      */
-    public String generateTempToken(User user) {
+    public String generateTwoFactorToken(User user) {
         return Jwts.builder()
                 .subject(user.getUserId())
                 .claim("role", user.getRole().name())
-                .claim("type", "2fa_challenge")
+                .claim("type", "2fa")
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 300_000)) // 5 min
+                .expiration(new Date(System.currentTimeMillis() + 300_000)) // 5 minutes
                 .signWith(key)
                 .compact();
     }
 
     /**
-     * Valide un token temporaire 2FA.
+     * Vérifie que le token est bien un token 2FA temporaire (type="2fa").
      */
-    public boolean validateTempToken(String token) {
+    public boolean isTwoFactorToken(String token) {
         try {
             Claims claims = getClaims(token);
-            return "2fa_challenge".equals(claims.get("type", String.class));
+            return "2fa".equals(claims.get("type", String.class));
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Génère un token de vérification d'email (24h).
+     */
+    public String generateEmailVerificationToken(String email) {
+        return Jwts.builder()
+                .subject(email)
+                .claim("type", "verify_email")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 86_400_000)) // 24h
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * Vérifie que le token est un token de vérification d'email (type="verify_email").
+     */
+    public boolean isEmailVerificationToken(String token) {
+        try {
+            Claims claims = getClaims(token);
+            return "verify_email".equals(claims.get("type", String.class));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Extrait l'email depuis un token, sans vérifier le type.
+     * Utilisé après vérification du type dans isEmailVerificationToken().
+     */
+    public String extractEmailFromToken(String token) {
+        try {
+            return getClaims(token).getSubject();
+        } catch (Exception e) {
+            return null;
         }
     }
 

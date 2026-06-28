@@ -375,22 +375,22 @@ export default function PlansPage() {
                   <label className={cn('block text-xs font-medium mb-1.5', textSecondary)}>Nom du plan</label>
                   <input type="text" value={form.planName}
                     onChange={(e) => setForm({ ...form, planName: e.target.value })}
-                    placeholder="EX: BASIC, PRO, PREMIUM, ENTERPRISE..."
+                    placeholder="Ex: BASIC, PRO, PREMIUM, ENTERPRISE..."
                     className={cn('w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border uppercase', inputCls)}
                   />
-                  <p className={cn('text-[10px] mt-1', textMuted)}>Sera automatiquement converti en majuscules</p>
+                  <p className={cn('text-[10px] mt-1', textMuted)}>Sera converti en majuscules. Ex: "basic" → "BASIC"</p>
                 </div>
 
                 {/* Pricing */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={cn('block text-xs font-medium mb-1.5', textSecondary)}>Prix mensuel (XAF)</label>
-                    <input type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: e.target.value })} placeholder="15000"
+                    <input type="number" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: e.target.value })} placeholder="Ex: 15000, 25000, 50000..."
                       className={cn('w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border', inputCls)} />
                   </div>
                   <div>
                     <label className={cn('block text-xs font-medium mb-1.5', textSecondary)}>Prix annuel (XAF)</label>
-                    <input type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: e.target.value })} placeholder="150000"
+                    <input type="number" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: e.target.value })} placeholder="Ex: 150000, 300000, 500000..."
                       className={cn('w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border', inputCls)} />
                   </div>
                 </div>
@@ -401,12 +401,13 @@ export default function PlansPage() {
                   <input type="number" value={form.maxHotspots} onChange={(e) => {
                     setForm({ ...form, maxHotspots: e.target.value })
                     setAdv('maxHotspots', Number(e.target.value) || 1)
-                  }} placeholder="10"
+                  }} placeholder="Ex: 1, 3, 5, 10..."
                     className={cn('w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border', inputCls)} />
+                  <p className={cn('text-[10px] mt-1', textMuted)}>Nombre maximal de hotspots que l'abonné peut créer</p>
                 </div>
                 <div>
                   <label className={cn('block text-xs font-medium mb-1.5', textSecondary)}>Description</label>
-                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Description du plan..."
+                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Ex: Pour les petits commerces, Solution idéale pour les entreprises..."
                     className={cn('w-full px-4 py-2.5 rounded-xl text-sm font-medium outline-none transition-all border resize-none', inputCls)} />
                 </div>
 
@@ -444,13 +445,17 @@ export default function PlansPage() {
                               <label className={cn('block text-[10px] font-medium mb-1', textSecondary)}>Tickets / mois</label>
                               <input type="number" value={form.advantages.monthlyTickets}
                                 onChange={(e) => setAdv('monthlyTickets', Number(e.target.value) || 0)}
+                                placeholder="Ex: 100, 500, 1000..."
                                 className={cn('w-full px-3 py-2 rounded-lg text-xs font-medium outline-none transition-all border', inputCls)} />
+                              <p className={cn('text-[9px] mt-0.5', textMuted)}>Tickets de connexion générés par mois. 0 = illimité</p>
                             </div>
                             <div>
                               <label className={cn('block text-[10px] font-medium mb-1', textSecondary)}>Forfaits / hotspot</label>
                               <input type="number" value={form.advantages.plansPerHotspot}
                                 onChange={(e) => setAdv('plansPerHotspot', Number(e.target.value) || 0)}
+                                placeholder="Ex: 5, 10, 20..."
                                 className={cn('w-full px-3 py-2 rounded-lg text-xs font-medium outline-none transition-all border', inputCls)} />
+                              <p className={cn('text-[9px] mt-0.5', textMuted)}>Forfaits WiFi créés par hotspot. 0 = illimité</p>
                             </div>
                           </div>
 

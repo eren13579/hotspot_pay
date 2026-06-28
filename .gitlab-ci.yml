@@ -1,0 +1,136 @@
+# ============================================================
+# HotspotPay — GitLab CI/CD Pipeline
+# Build → Push Registry → Deploy VPS
+# ============================================================
+
+variables:
+  DOCKER_IMAGE_JAVA:    $CI_REGISTRY_IMAGE/java
+  DOCKER_IMAGE_FASTAPI: $CI_REGISTRY_IMAGE/fastapi
+  DOCKER_IMAGE_FRONTEND: $CI_REGISTRY_IMAGE/frontend
+  DOCKER_TAG:           $CI_COMMIT_SHORT_SHA
+
+stages:
+  - build
+  - push
+  - deploy
+
+# ── BUILD ──────────────────────────────────────────────────
+
+build-java:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_BUILDKIT: 1
+  script:
+    - docker build -t $DOCKER_IMAGE_JAVA:$DOCKER_TAG -t $DOCKER_IMAGE_JAVA:latest ./Backend/Java/hotspot_pay
+  cache:
+    paths:
+      - .m2/
+  tags:
+    - docker
+
+build-fastapi:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - docker build -t $DOCKER_IMAGE_FASTAPI:$DOCKER_TAG -t $DOCKER_IMAGE_FASTAPI:latest ./Backend/Fastapi/hotspot_pay
+  tags:
+    - docker
+
+build-frontend:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - docker build -t $DOCKER_IMAGE_FRONTEND:$DOCKER_TAG -t $DOCKER_IMAGE_FRONTEND:latest ./Frontend/hotspot_pay
+  tags:
+    - docker
+
+# ── PUSH REGISTRY ──────────────────────────────────────────
+
+push-java:
+  stage: push
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push $DOCKER_IMAGE_JAVA:$DOCKER_TAG
+    - docker push $DOCKER_IMAGE_JAVA:latest
+  needs:
+    - build-java
+  tags:
+    - docker
+
+push-fastapi:
+  stage: push
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push $DOCKER_IMAGE_FASTAPI:$DOCKER_TAG
+    - docker push $DOCKER_IMAGE_FASTAPI:latest
+  needs:
+    - build-fastapi
+  tags:
+    - docker
+
+push-frontend:
+  stage: push
+  image: docker:27
+  services:
+    - docker:27-dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker push $DOCKER_IMAGE_FRONTEND:$DOCKER_TAG
+    - docker push $DOCKER_IMAGE_FRONTEND:latest
+  needs:
+    - build-frontend
+  tags:
+    - docker
+
+# ── DEPLOY VPS ─────────────────────────────────────────────
+
+deploy-vps:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client docker-compose
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    # Connexion VPS et déploiement
+    - ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "
+        cd /opt/hotspotpay &&
+
+        # Login registry
+        echo '$CI_REGISTRY_PASSWORD' | docker login $CI_REGISTRY -u '$CI_REGISTRY_USER' --password-stdin &&
+
+        # Pull les nouvelles images
+        docker compose pull &&
+
+        # Redémarrer avec les nouvelles images
+        docker compose up -d --remove-orphans &&
+
+        # Nettoyer les anciennes images
+        docker image prune -f
+      "
+  environment:
+    name: production
+    url: https://$VPS_HOST
+  needs:
+    - push-java
+    - push-fastapi
+    - push-frontend
+  only:
+    - main
+  tags:
+    - docker

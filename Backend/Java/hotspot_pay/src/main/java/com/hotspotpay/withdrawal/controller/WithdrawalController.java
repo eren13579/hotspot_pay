@@ -1,5 +1,6 @@
 package com.hotspotpay.withdrawal.controller;
 
+import com.hotspotpay.audit.service.AuditService;
 import com.hotspotpay.common.dto.ApiResponse;
 import com.hotspotpay.withdrawal.dto.WithdrawalRequest;
 import com.hotspotpay.withdrawal.dto.WithdrawalResponse;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 public class WithdrawalController {
 
     private final WithdrawalService withdrawalService;
+    private final AuditService auditService;
 
     @PostMapping
     @Operation(summary = "Demander un retrait")
@@ -77,22 +79,26 @@ public class WithdrawalController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Approuver un retrait (admin)")
     public ResponseEntity<ApiResponse<WithdrawalResponse>> approve(
+            @AuthenticationPrincipal String adminId,
             @PathVariable String withdrawalId) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Retrait approuvé",
-                withdrawalService.approve(withdrawalId)));
+        var result = withdrawalService.approve(withdrawalId);
+        auditService.log("APPROVE_WITHDRAWAL", "Withdrawal", withdrawalId,
+                "Admin " + adminId + " a approuvé le retrait " + withdrawalId);
+        return ResponseEntity.ok(ApiResponse.ok("Retrait approuvé", result));
     }
 
     @PostMapping("/{withdrawalId}/reject")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Rejeter un retrait (admin)")
     public ResponseEntity<ApiResponse<WithdrawalResponse>> reject(
+            @AuthenticationPrincipal String adminId,
             @PathVariable String withdrawalId,
             @RequestBody(required = false) Map<String, String> body) {
         String reason = body != null ? body.getOrDefault("reason", "") : "";
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Retrait rejeté",
-                withdrawalService.reject(withdrawalId, reason)));
+        var result = withdrawalService.reject(withdrawalId, reason);
+        auditService.log("REJECT_WITHDRAWAL", "Withdrawal", withdrawalId,
+                "Admin " + adminId + " a rejeté le retrait " + withdrawalId + " — Raison: " + reason);
+        return ResponseEntity.ok(ApiResponse.ok("Retrait rejeté", result));
     }
 
     // ── Batch ─────────────────────────────────────────────────────────────────
@@ -101,29 +107,35 @@ public class WithdrawalController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Approuver plusieurs retraits (admin)")
     public ResponseEntity<ApiResponse<List<WithdrawalResponse>>> batchApprove(
+            @AuthenticationPrincipal String adminId,
             @RequestBody Map<String, List<String>> body) {
         List<String> ids = body.get("withdrawalIds");
         if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("VALIDATION_ERROR", "Liste d'IDs requise"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Liste d'IDs requise"));
         }
+        var results = withdrawalService.batchApprove(ids);
+        auditService.log("BATCH_APPROVE_WITHDRAWALS", "Withdrawal", String.join(",", ids),
+                "Admin " + adminId + " a approuvé " + ids.size() + " retrait(s) en lot");
         return ResponseEntity.ok(ApiResponse.ok(
-                ids.size() + " retrait(s) approuvé(s)",
-                withdrawalService.batchApprove(ids)));
+                ids.size() + " retrait(s) approuvé(s)", results));
     }
 
     @PostMapping("/batch/reject")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @Operation(summary = "Rejeter plusieurs retraits (admin)")
     public ResponseEntity<ApiResponse<List<WithdrawalResponse>>> batchReject(
+            @AuthenticationPrincipal String adminId,
             @RequestBody Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         List<String> ids = (List<String>) body.get("withdrawalIds");
         String reason = (String) body.getOrDefault("reason", "");
         if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("VALIDATION_ERROR", "Liste d'IDs requise"));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Liste d'IDs requise"));
         }
+        var results = withdrawalService.batchReject(ids, reason);
+        auditService.log("BATCH_REJECT_WITHDRAWALS", "Withdrawal", String.join(",", ids),
+                "Admin " + adminId + " a rejeté " + ids.size() + " retrait(s) en lot — Raison: " + reason);
         return ResponseEntity.ok(ApiResponse.ok(
-                ids.size() + " retrait(s) rejeté(s)",
-                withdrawalService.batchReject(ids, reason)));
+                ids.size() + " retrait(s) rejeté(s)", results));
     }
 }

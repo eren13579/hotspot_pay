@@ -2,6 +2,7 @@ package com.hotspotpay.payment.gateway;
 
 import com.hotspotpay.integration.moneroo.*;
 import com.hotspotpay.payment.enumeration.PaymentOperator;
+import com.hotspotpay.systemsettings.service.SettingsReader;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,10 @@ import java.util.Map;
  *      → corps = MonerooWebhookEvent { event, data: { id, status, metadata } }
  *      → événements : "payment.success", "payment.failed", "payment.cancelled"
  *      → extraire notre référence depuis data.metadata.reference
+ *
+ * ⚠ Les paramètres (apiKey, baseUrl, returnUrl, etc.) sont lus depuis la BD
+ *    (system_settings) avec fallback sur les propriétés Spring/.env.
+ *    L'administrateur peut donc les modifier depuis l'UI sans redémarrer.
  */
 @Slf4j
 @Component
@@ -41,6 +46,7 @@ public class MonerooGateway implements MoMoGateway {
 
     private final WebClient         webClient;
     private final MonerooProperties props;
+    private final SettingsReader    settings;
     @Getter
     private volatile String lastCheckoutUrl;
 
@@ -58,7 +64,7 @@ public class MonerooGateway implements MoMoGateway {
                 .amount(amountLong)
                 .currency(currency)
                 .description(description)
-                .returnUrl(props.getReturnUrl())
+                .returnUrl(settings.get("payments.moneroo.returnUrl", props::getReturnUrl) + "?reference=" + reference)
                 .metadata(Map.of("reference", reference))
                 .customer(MonerooInitRequest.Customer.builder()
                         .phone(sanitizePhone(phone))
@@ -66,13 +72,13 @@ public class MonerooGateway implements MoMoGateway {
                         .lastName("WiFi")
                         .email(phone.replaceAll("[^0-9]", "") + "@hotspotpay.cm")
                         .build())
-                .methods(props.getMethods().isEmpty() ? null : props.getMethods())
+                .methods(settings.getList("payments.moneroo.methods", ",", props::getMethods).isEmpty() ? null : settings.getList("payments.moneroo.methods", ",", props::getMethods))
                 .build();
 
         try {
             MonerooInitResponse resp = webClient.post()
-                    .uri(props.getBaseUrl() + "/v1/payments/initialize")
-                    .header("Authorization", "Bearer " + props.getApiKey())
+                    .uri(settings.get("payments.moneroo.baseUrl", props::getBaseUrl) + "/v1/payments/initialize")
+                    .header("Authorization", "Bearer " + settings.get("payments.moneroo.apiKey", props::getApiKey))
                     .header("Accept", "application/json")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
@@ -88,10 +94,14 @@ public class MonerooGateway implements MoMoGateway {
             }
 
             String monerooId = resp.getData().getId();
+            String checkoutUrl = resp.getData().getCheckoutUrl();
 
-            this.lastCheckoutUrl = resp.getData().getCheckoutUrl();
-            log.info("[Moneroo] Paiement initialisé — id={}, checkoutUrl={}", monerooId, lastCheckoutUrl);
-            return monerooId;
+            this.lastCheckoutUrl = checkoutUrl;
+            log.info("[Moneroo] Paiement initialisé — id={}, checkoutUrl={}", monerooId, checkoutUrl);
+
+            // IMPORTANT : PaymentServiceImpl.initiate() parse "gatewayTxId|checkoutUrl"
+            // pour stocker le checkout_url en DB et le renvoyer au client.
+            return monerooId + "|" + (checkoutUrl != null ? checkoutUrl : "");
 
         } catch (WebClientResponseException e) {
             log.error("[Moneroo] HTTP {} : {}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -103,8 +113,8 @@ public class MonerooGateway implements MoMoGateway {
     public TransactionStatus getTransactionStatus(String transactionId) {
         try {
             MonerooVerifyResponse resp = webClient.get()
-                    .uri(props.getBaseUrl() + "/v1/payments/" + transactionId + "/verify")
-                    .header("Authorization", "Bearer " + props.getApiKey())
+                    .uri(settings.get("payments.moneroo.baseUrl", props::getBaseUrl) + "/v1/payments/" + transactionId + "/verify")
+                    .header("Authorization", "Bearer " + settings.get("payments.moneroo.apiKey", props::getApiKey))
                     .header("Accept", "application/json")
                     .retrieve()
                     .bodyToMono(MonerooVerifyResponse.class)  // ✅ Jackson désérialise proprement

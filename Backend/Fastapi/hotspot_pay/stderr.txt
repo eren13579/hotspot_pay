@@ -1,8 +1,0 @@
-routeros_api non installe — mode simulation actif pour MikroTik
-2026-05-31 00:41:20,632 [INFO] httpx: HTTP Request: GET http://test/health "HTTP/1.1 200 OK"
-2026-05-31 00:41:20,994 [INFO] app.infrastructure.messaging.action_queue: Action enqueued (memory): action_id=act_19a70211f563 hotspot=x user=u
-2026-05-31 00:41:20,995 [INFO] app.application.services.router_action_service: Action created: action_id=act_19a70211f563 hotspot=x type=CREATE_USER user=u
-2026-05-31 00:41:20,999 [INFO] httpx: HTTP Request: POST http://test/api/v1/router/actions/create "HTTP/1.1 200 OK"
-2026-05-31 00:41:21,010 [INFO] app.infrastructure.messaging.action_queue: Action enqueued (memory): action_id=act_8a662072461b hotspot=x user=u
-2026-05-31 00:41:21,011 [INFO] app.application.services.router_action_service: Action created: action_id=act_8a662072461b hotspot=x type=CREATE_USER user=u
-2026-05-31 00:41:21,014 [INFO] httpx: HTTP Request: POST http://test/api/v1/router/actions/create "HTTP/1.1 200 OK"

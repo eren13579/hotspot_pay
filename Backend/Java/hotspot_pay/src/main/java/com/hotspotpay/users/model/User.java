@@ -2,10 +2,7 @@ package com.hotspotpay.users.model;
 
 import com.hotspotpay.users.role.UserRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,12 +15,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
+@Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"password", "totpSecret"})
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
@@ -46,16 +46,16 @@ public class User {
 
     private Boolean isActive = true;
 
-    @Column(name = "two_factor_enabled")
-    @Builder.Default
-    private boolean twoFactorEnabled = false;
+    @Column(name = "totp_secret", length = 64)
+    private String totpSecret;
 
-    @Column(name = "two_factor_secret")
-    private String twoFactorSecret;
-
-    @Column(name = "auto_connect")
+    @Column(name = "totp_enabled")
     @Builder.Default
-    private boolean autoConnect = false;
+    private Boolean totpEnabled = false;
+
+    @Column(name = "email_verified")
+    @Builder.Default
+    private Boolean emailVerified = false;
 
     @Enumerated(EnumType.STRING)
     private UserRole role;

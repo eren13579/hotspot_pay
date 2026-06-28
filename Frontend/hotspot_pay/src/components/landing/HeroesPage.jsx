@@ -11,7 +11,7 @@ const TRANSACTIONS = [
   { op: "Airtel Money", amount: "1 000 XAF", time: "il y a 1min" },
 ]
 
-function HeroesPage() {
+function HeroesPage({ onGoogleLogin, googleLoading, googleError }) {
   const navigate = useNavigate();
   const { settings } = usePublicSettings();
   const [tickerIndex, setTickerIndex] = useState(0);
@@ -118,11 +118,41 @@ function HeroesPage() {
             <span className="text-slate-300 font-semibold">Zéro effort, revenus garantis.</span>
           </motion.p>
 
+          {googleError && (
+            <motion.p
+              className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2 max-w-xl mx-auto lg:mx-0 text-center lg:text-left"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {googleError}
+            </motion.p>
+          )}
+
           <motion.div
-            className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto"
+            className="mt-6 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 w-full sm:w-auto"
             variants={itemVariants}
           >
-            {settings.registrationEnabled ? (
+            {onGoogleLogin ? (
+              <motion.button
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm px-8 py-4 transition-all cursor-pointer shadow-lg shadow-blue-600/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onGoogleLogin}
+                disabled={googleLoading}
+              >
+                {googleLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Connexion en cours...
+                  </>
+                ) : (
+                  "Commencer gratuitement"
+                )}
+              </motion.button>
+            ) : settings.registrationEnabled ? (
               <motion.button
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm px-8 py-4 transition-all cursor-pointer shadow-lg shadow-blue-600/25 active:scale-[0.98]"
                 whileHover={{ scale: 1.02 }}

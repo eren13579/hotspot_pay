@@ -17,8 +17,8 @@ export const authApi = {
       headers: { 'Refresh-Token': localStorage.getItem('refreshToken') },
     }),
 
-  google: (idToken) =>
-    api.post('/auth/google', { idToken }),
+  google: (payload) =>
+    api.post('/auth/google', payload),
 
   me: () =>
     api.get('/auth/me'),

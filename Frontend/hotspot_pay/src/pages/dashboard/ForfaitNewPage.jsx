@@ -271,10 +271,13 @@ export default function ForfaitNewPage() {
                 type="text"
                 value={form.name}
                 onChange={set('name')}
-                placeholder="Ex: 1 Heure, 500 MB, Journée illimitée..."
+                placeholder="Ex: 1 Heure WiFi, 500 MB Data, Journée illimitée..."
                 className={errors.name ? inputError : inputBase}
               />
               {errors.name && <p className="text-[11px] text-red-400 mt-1">{errors.name}</p>}
+              <p className={cn('text-[10px] mt-1 flex items-center gap-1', textMuted)}>
+                <Tag className="w-3 h-3" /> Ce nom sera affiché aux clients sur le portail captif
+              </p>
             </div>
 
             {/* Description */}
@@ -285,7 +288,7 @@ export default function ForfaitNewPage() {
               <textarea
                 value={form.description}
                 onChange={set('description')}
-                placeholder="Description optionnelle du forfait..."
+                placeholder="Ex: Accès Internet haut débit valable 24h, Navigation illimitée pendant 1 heure..."
                 rows={2}
                 className={cn(inputBase, 'resize-none h-full min-h-[48px] py-3')}
               />
@@ -295,7 +298,8 @@ export default function ForfaitNewPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={cn('text-xs font-semibold mb-1.5 block', isLight ? 'text-slate-700' : 'text-slate-300')}>
-                  Durée (minutes) <span className="text-red-400">*</span>
+                  Durée <span className="text-red-400">*</span>
+                  <span className={cn('text-[10px] font-normal ml-1', textMuted)}>(en minutes)</span>
                 </label>
                 <div className="relative">
                   <Clock className={cn('absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4', isLight ? 'text-slate-400' : 'text-slate-500')} />
@@ -305,6 +309,7 @@ export default function ForfaitNewPage() {
                     max="44640"
                     value={form.durationMinutes}
                     onChange={set('durationMinutes')}
+                    placeholder="Ex: 60, 1440, 10080..."
                     className={cn(errors.durationMinutes ? inputError : inputBase, 'pl-10')}
                   />
                 </div>
@@ -314,10 +319,37 @@ export default function ForfaitNewPage() {
                     <Clock className="w-3 h-3" /> {formatDuration(parseInt(form.durationMinutes))}
                   </p>
                 )}
+                <div className={cn('flex flex-wrap gap-2 mt-2', isLight ? 'text-slate-400' : 'text-slate-500')}>
+                  {[
+                    { min: 30, label: '30min' },
+                    { min: 60, label: '1h' },
+                    { min: 360, label: '6h' },
+                    { min: 1440, label: '24h' },
+                    { min: 10080, label: '7j' },
+                    { min: 43200, label: '30j' },
+                  ].map(({ min, label }) => (
+                    <button
+                      key={min}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, durationMinutes: min }))}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all cursor-pointer border',
+                        form.durationMinutes === min
+                          ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                          : isLight
+                            ? 'border-slate-200 hover:border-slate-300 text-slate-400 hover:text-slate-600'
+                            : 'border-slate-700/50 hover:border-slate-600 text-slate-500 hover:text-slate-300',
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className={cn('text-xs font-semibold mb-1.5 block', isLight ? 'text-slate-700' : 'text-slate-300')}>
                   Prix <span className="text-red-400">*</span>
+                  <span className={cn('text-[10px] font-normal ml-1', textMuted)}>(en FCFA)</span>
                 </label>
                 <div className="relative">
                   <span className={cn('absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold', isLight ? 'text-slate-400' : 'text-slate-500')}>F</span>
@@ -327,7 +359,7 @@ export default function ForfaitNewPage() {
                     step="0.01"
                     value={form.price}
                     onChange={set('price')}
-                    placeholder="0"
+                    placeholder="Ex: 500, 1000, 2000..."
                     className={cn(errors.price ? inputError : inputBase, 'pl-8')}
                   />
                 </div>
@@ -337,6 +369,25 @@ export default function ForfaitNewPage() {
                     <Zap className="w-3 h-3 text-amber-400" /> {formatXAF(parseFloat(form.price))}
                   </p>
                 )}
+                <div className={cn('flex flex-wrap gap-2 mt-2', isLight ? 'text-slate-400' : 'text-slate-500')}>
+                  {[500, 1000, 1500, 2000, 5000].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, price: String(val) }))}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all cursor-pointer border',
+                        String(form.price) === String(val)
+                          ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                          : isLight
+                            ? 'border-slate-200 hover:border-slate-300 text-slate-400 hover:text-slate-600'
+                            : 'border-slate-700/50 hover:border-slate-600 text-slate-500 hover:text-slate-300',
+                      )}
+                    >
+                      {formatXAF(val)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -362,42 +413,102 @@ export default function ForfaitNewPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className={cn('text-[11px] mb-1 flex items-center gap-1.5', isLight ? 'text-slate-500' : 'text-slate-400')}>
-                    <Database className="w-3.5 h-3.5" /> Data (MB)
+                    <Database className="w-3.5 h-3.5" /> Data <span className={textMuted}>(MB)</span>
                   </label>
                   <input
                     type="number"
                     min="1"
                     value={form.dataLimitMb}
                     onChange={set('dataLimitMb')}
-                    placeholder="Illimité"
+                    placeholder="Illimité (ex: 500, 1024)"
                     className={inputBase}
                   />
                 </div>
                 <div>
                   <label className={cn('text-[11px] mb-1 flex items-center gap-1.5', isLight ? 'text-slate-500' : 'text-slate-400')}>
-                    <Download className="w-3.5 h-3.5" /> Download
+                    <Download className="w-3.5 h-3.5" /> Download <span className={textMuted}>(Kbps)</span>
                   </label>
                   <input
                     type="number"
                     min="64"
                     value={form.downloadSpeedKbps}
                     onChange={set('downloadSpeedKbps')}
-                    placeholder="Kbps"
+                    placeholder="Ex: 512, 1024, 2048..."
                     className={errors.downloadSpeedKbps ? inputError : inputBase}
                   />
+                  {form.downloadSpeedKbps > 0 && (
+                    <p className={cn('text-[10px] mt-0.5', textMuted)}>
+                      ≈ {Math.round(parseInt(form.downloadSpeedKbps) / 1000 * 10) / 10} Mbps
+                    </p>
+                  )}
+                  <div className={cn('flex flex-wrap gap-1.5 mt-1.5')}>
+                    {[
+                      { val: 512, label: '512 Kbps' },
+                      { val: 1024, label: '1 Mbps' },
+                      { val: 2048, label: '2 Mbps' },
+                      { val: 5120, label: '5 Mbps' },
+                      { val: 10240, label: '10 Mbps' },
+                    ].map(({ val, label }) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, downloadSpeedKbps: String(val) }))}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[9px] font-medium transition-all cursor-pointer border',
+                          String(form.downloadSpeedKbps) === String(val)
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                            : isLight
+                              ? 'border-slate-200 hover:border-slate-300 text-slate-400'
+                              : 'border-slate-700/50 hover:border-slate-600 text-slate-500',
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className={cn('text-[11px] mb-1 flex items-center gap-1.5', isLight ? 'text-slate-500' : 'text-slate-400')}>
-                    <Upload className="w-3.5 h-3.5" /> Upload
+                    <Upload className="w-3.5 h-3.5" /> Upload <span className={textMuted}>(Kbps)</span>
                   </label>
                   <input
                     type="number"
                     min="64"
                     value={form.uploadSpeedKbps}
                     onChange={set('uploadSpeedKbps')}
-                    placeholder="Kbps"
+                    placeholder="Ex: 256, 512, 1024..."
                     className={errors.uploadSpeedKbps ? inputError : inputBase}
                   />
+                  {form.uploadSpeedKbps > 0 && (
+                    <p className={cn('text-[10px] mt-0.5', textMuted)}>
+                      ≈ {Math.round(parseInt(form.uploadSpeedKbps) / 1000 * 10) / 10} Mbps
+                    </p>
+                  )}
+                  <div className={cn('flex flex-wrap gap-1.5 mt-1.5')}>
+                    {[
+                      { val: 256, label: '256 Kbps' },
+                      { val: 512, label: '512 Kbps' },
+                      { val: 1024, label: '1 Mbps' },
+                      { val: 2048, label: '2 Mbps' },
+                      { val: 5120, label: '5 Mbps' },
+                    ].map(({ val, label }) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, uploadSpeedKbps: String(val) }))}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[9px] font-medium transition-all cursor-pointer border',
+                          String(form.uploadSpeedKbps) === String(val)
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                            : isLight
+                              ? 'border-slate-200 hover:border-slate-300 text-slate-400'
+                              : 'border-slate-700/50 hover:border-slate-600 text-slate-500',
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

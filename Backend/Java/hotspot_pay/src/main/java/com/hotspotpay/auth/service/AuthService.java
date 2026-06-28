@@ -1,9 +1,6 @@
 package com.hotspotpay.auth.service;
 
-import com.hotspotpay.auth.dto.AuthResponse;
-import com.hotspotpay.auth.dto.LoginRequest;
-import com.hotspotpay.auth.dto.PasswordUpdateRequest;
-import com.hotspotpay.auth.dto.RegisterRequest;
+import com.hotspotpay.auth.dto.*;
 
 public interface AuthService {
 
@@ -18,4 +15,13 @@ public interface AuthService {
      * Si l'utilisateur n'existe pas, le compte est créé automatiquement.
      */
     AuthResponse loginWithGoogle(String idToken);
+
+    /** Envoyer un email de réinitialisation de mot de passe */
+    void forgotPassword(ForgotPasswordRequest request);
+
+    /** Réinitialiser le mot de passe avec un token */
+    AuthResponse resetPassword(ResetPasswordRequest request);
+
+    /** Vérifier l'adresse email */
+    void verifyEmail(String token);
 }

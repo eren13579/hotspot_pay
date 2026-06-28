@@ -17,12 +17,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Data
+@Getter @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class Payment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     @Column(updatable = false, nullable = false)
     private UUID id;
 
@@ -88,16 +90,6 @@ public class Payment {
     /** URL checkout Moneroo — pour rediriger le client vers la page de paiement */
     @Column(name = "checkout_url", length = 1000)
     private String checkoutUrl;
-
-    @Column(name = "manual_connect")
-    @Builder.Default
-    private Boolean manualConnect = false;
-
-    @Column(name = "manual_username", length = 100)
-    private String manualUsername;
-
-    @Column(name = "manual_password", length = 100)
-    private String manualPassword;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)

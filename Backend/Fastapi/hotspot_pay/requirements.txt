@@ -101,3 +101,4 @@ watchfiles==1.2.0
     # via uvicorn
 websockets==16.0
     # via uvicorn
+routeros_api>=0.21.0
